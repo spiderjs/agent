@@ -1,0 +1,47 @@
+{
+    "name": "spiderjs-agent",
+    "version": "0.0.1",
+    "description": "the spiderjs worker node agent program",
+    "main": "index.js",
+    "scripts": {
+        "dev": "nodemon -e js,ts --watch tools --watch src tools/dev.js test",
+        "agent": "nodemon -e js,ts --watch tools --watch src tools/dev.js agent",
+        "build": "tsc -p . && node tools/copyfiles.js"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/spiderjs/agent.git"
+    },
+    "keywords": [
+        "spiderjs",
+        "agent"
+    ],
+    "author": "yayanyang@gmail.com",
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/spiderjs/agent/issues"
+    },
+    "homepage": "https://github.com/spiderjs/agent#readme",
+    "dependencies": {
+        "copy-dir": "^0.3.0",
+        "grpc": "^1.0.1",
+        "log4js": "^1.1.0",
+        "nanotimer": "^0.3.14"
+    },
+    "devDependencies": {
+        "@types/log4js": "^0.0.32",
+        "@types/mocha": "^2.2.38",
+        "@types/node": "^7.0.0",
+        "eslint": "^3.14.0",
+        "eslint-plugin-node": "^3.0.5",
+        "mocha": "^3.2.0",
+        "mocha-typescript": "^1.0.15",
+        "node-dev": "^3.1.3",
+        "nodemon": "^1.11.0",
+        "tslint": "^4.3.1",
+        "typescript": "^2.1.5"
+    },
+    "engines": {
+        "node": ">=6.0.0"
+    }
+}
