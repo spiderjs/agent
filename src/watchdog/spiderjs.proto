@@ -2,21 +2,24 @@ syntax = "proto3";
 package spiderjs;
 
 message HttpHttpsReciver {
-    string url                              = 1;
-    string signKey                          = 2;
+    string url                              = 4;
+    string signKey                          = 5;
 }
 
 
 message Receiver {
     string oid                              = 1;
+
     enum Type {
         HTTP_HTTPS_RECIVER = 0;
     }
 
     Type type                               = 2;
 
+    string vendor                           = 3;
+
     oneof config {
-        HttpHttpsReciver httpHttpsReciver   = 3;
+        HttpHttpsReciver httpHttpsReciver   = 4;
     }
 }
 
@@ -38,8 +41,6 @@ enum Code {
     SUCCESS = 0;
     INNER_ERROR = 1;
     SCRIPT_EXCEPTION = 3;
-    RESOURCE_NOT_FOUND = 4;
-    CANCELED = 5;
 }
 
 message Result {

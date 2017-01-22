@@ -63,6 +63,8 @@ export class Executor {
                 const sendevent: agent.IWorkerEvent = { event: 'RUN_JOB', evtarg: job };
 
                 worker.process.send(sendevent);
+
+                return;
             }
         }
 

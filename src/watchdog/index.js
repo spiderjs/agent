@@ -1,4 +1,5 @@
 const path = require('path');
+const util = require('util');
 const grpc = require('grpc');
 const events = require('events');
 const logger = require('log4js').getLogger('watchdog');
@@ -25,35 +26,38 @@ WatchDog.prototype.on = function(evt, fun) {
 };
 
 WatchDog.prototype.connect = function() {
-    const self = this;
 
-    const call = this.client.online();
+    this.stream = this.client.online();
 
-    this.stream = call;
-
-    call.write({
+    this.stream.write({
         event: 'AGENT_ONLINE',
         oid: this.oid,
     });
 
-    call.on('data', (command) => {
-        self.onCommand(command);
-    });
+    this.stream.on('data', (command) => {
 
-    call.on('error', (err) => {
-        logger.error(`connection to scheduler error: grpc(${err.code})`);
-
-        if (err.code == 14 && !self.reconnect) {
-            self.connect();
+        try {
+            this.onCommand(command);
+        } catch (error) {
+            logger.error(error.stack);
         }
 
-        self.reconnect = false;
     });
 
-    call.on('end', () => {
+    this.stream.on('status', (status) => {
+        logger.debug(`stream status changed :${status.code}`);
+
+        this.stream.cancel();
+
+        this.connect();
+    });
+
+    this.stream.on('error', (err) => {
+        logger.error(`connection to scheduler error: grpc(${err.code})`);
+    });
+
+    this.stream.on('end', () => {
         logger.info('scheduler manual closed connection');
-        self.reconnect = true;
-        self.connect();
     });
 };
 
