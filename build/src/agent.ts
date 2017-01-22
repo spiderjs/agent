@@ -30,6 +30,14 @@ export interface IExecutor {
     concurrent?: number;
 }
 
+export type WorkEvent = 'STARTED' | 'INIT_SUCCESS' | 'INIT_FAILED' | 'JOB_COMPLETED' | 'INIT' | 'RUN_JOB' | 'UNDEPLOY';
+
+export interface IWorkerEvent {
+    event: WorkEvent;
+
+    evtarg?: IExecutor | IJob | IExecutor | IResult;
+}
+
 export interface IWatchDog {
     /**
      * call when executor is deploying
@@ -39,6 +47,16 @@ export interface IWatchDog {
      * call when executor deploy completed
      */
     onDeployCompleted(oid: string, result: IResult): void;
+
+    /**
+     * call when executor is undeploying
+     */
+    onUndeploying(oid: string): void;
+
+    /**
+     * call when executor is undeploy completed
+     */
+    onUndeployingCompleted(oid: string, result: IResult): void;
 
     /**
      * call when agent update perf counter data

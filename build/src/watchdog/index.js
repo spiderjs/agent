@@ -71,4 +71,30 @@ WatchDog.prototype.onUpdatePerf = function(perf) {
     });
 };
 
+WatchDog.prototype.onUndeployingCompleted = function(oid, result) {
+    this.stream.write({
+        event: 'EXECTUTOR_UNDEPLOY_COMPLETED',
+        oid: oid,
+        result: result
+    });
+};
+
+WatchDog.prototype.onDeployCompleted = function(oid, result) {
+    this.stream.write({
+        event: 'EXECTUTOR_DEPLOY_COMPLETED',
+        oid: oid,
+        result: result
+    });
+};
+
+WatchDog.prototype.onJobCompleted = function(job) {
+
+    this.stream.write({
+        event: 'JOB_COMPLETED',
+        oid: this.oid,
+        job: job
+    });
+
+};
+
 module.exports.WatchDog = WatchDog;

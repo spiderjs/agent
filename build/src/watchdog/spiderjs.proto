@@ -1,23 +1,23 @@
 syntax = "proto3";
 package spiderjs;
 
-message HttpHttpsReciver { 
-    string url                              = 1; 
-    string signKey                          = 2; 
-} 
- 
+message HttpHttpsReciver {
+    string url                              = 1;
+    string signKey                          = 2;
+}
+
 
 message Receiver {
     string oid                              = 1;
-    enum Type { 
-        HTTP_HTTPS_RECIVER = 0; 
-    } 
- 
-    Type type                               = 2; 
- 
-    oneof config { 
-        HttpHttpsReciver httpHttpsReciver   = 3; 
-    } 
+    enum Type {
+        HTTP_HTTPS_RECIVER = 0;
+    }
+
+    Type type                               = 2;
+
+    oneof config {
+        HttpHttpsReciver httpHttpsReciver   = 3;
+    }
 }
 
 message Executor {
@@ -38,6 +38,8 @@ enum Code {
     SUCCESS = 0;
     INNER_ERROR = 1;
     SCRIPT_EXCEPTION = 3;
+    RESOURCE_NOT_FOUND = 4;
+    CANCELED = 5;
 }
 
 message Result {
@@ -53,6 +55,8 @@ message OnlineREQ {
         PERF_UPDATE = 2;
         AGENT_ONLINE = 3;
         JOB_COMPLETED =4;
+        EXECTUTOR_UNDEPLOYING = 5;
+        EXECTUTOR_UNDEPLOY_COMPLETED = 6;
     }
 
     Event event = 1;
@@ -91,7 +95,7 @@ message Command {
         Job job = 5;
     }
 }
- 
+
 
 message RunJobREQ {
     string oid = 1; // executor oid
@@ -102,5 +106,5 @@ message RunJobREQ {
 service WatchDog {
     rpc Online(stream OnlineREQ) returns (stream Command) {}
     // run job on spider instance
-    rpc RunJob(RunJobREQ) returns (Result) {}   
+    rpc RunJob(RunJobREQ) returns (Result) {}
 }

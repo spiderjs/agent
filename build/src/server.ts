@@ -78,6 +78,27 @@ export class Server {
         }, this.perfUpdateInterval);
     }
 
+    public onJobCompleted(job: agent.IJob): void {
+        this.perf.pending--;
+
+        this.watchdog.onJobCompleted(job);
+    }
+
+    public onDeployCompleted(oid: string, result: agent.IResult): void {
+        this.watchdog.onDeployCompleted(oid, result);
+    }
+
+    public onUndeployCompleted(oid: string, result: agent.IResult): void {
+        const executor = this.executors.get(oid);
+
+        if (executor) {
+            executor.stop();
+            this.executors.delete(oid);
+
+            this.watchdog.onUndeployingCompleted(oid, result);
+        }
+    }
+
     private updatePerf(): void {
         this.perf.executors = [];
 
@@ -100,10 +121,11 @@ export class Server {
     }
 
     private deploy(config: agent.IExecutor): void {
-        log.debug(JSON.stringify(config));
+
         let executor = this.executors.get(config.oid);
 
         if (!executor) {
+            log.debug(`create new executor[${config.oid}]`);
 
             executor = new exec.Executor(config, this);
 
@@ -120,6 +142,21 @@ export class Server {
     }
 
     private runJob(job: agent.IJob): void {
-        log.debug(`run job ${JSON.stringify(job)}`);
+        this.perf.jobs++;
+        this.perf.pending++;
+        const executor = this.executors.get(job.executor);
+
+        if (!executor) {
+            log.error(`can't dispatch job[${job.oid}] to executor[${job.executor}] --- executor not found`);
+
+            job.result = {
+                code: 'RESOURCE_NOT_FOUND',
+                errmsg: `executor[${job.executor}] not found`,
+            };
+
+            this.onJobCompleted(job);
+        } else {
+            executor.runJob(job);
+        }
     }
 }

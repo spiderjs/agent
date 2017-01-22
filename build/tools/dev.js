@@ -34,6 +34,11 @@ function run(command, callback) {
     lines.on('line', line => {
         console.log(line);
     });
+
+    const lines2 = readline.createInterface({ input: dev.stderr });
+    lines2.on('line', line => {
+        console.log(line);
+    });
 }
 
 run('tsc -p .', () => {

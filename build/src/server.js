@@ -60,6 +60,21 @@ class Server {
             self.updatePerf();
         }, this.perfUpdateInterval);
     }
+    onJobCompleted(job) {
+        this.perf.pending--;
+        this.watchdog.onJobCompleted(job);
+    }
+    onDeployCompleted(oid, result) {
+        this.watchdog.onDeployCompleted(oid, result);
+    }
+    onUndeployCompleted(oid, result) {
+        const executor = this.executors.get(oid);
+        if (executor) {
+            executor.stop();
+            this.executors.delete(oid);
+            this.watchdog.onUndeployingCompleted(oid, result);
+        }
+    }
     updatePerf() {
         this.perf.executors = [];
         // tslint:disable-next-line:forin
@@ -76,9 +91,9 @@ class Server {
         log.debug('recv reject event :' + result);
     }
     deploy(config) {
-        log.debug(JSON.stringify(config));
         let executor = this.executors.get(config.oid);
         if (!executor) {
+            log.debug(`create new executor[${config.oid}]`);
             executor = new exec.Executor(config, this);
             executor.run();
             this.executors.set(config.oid, executor);
@@ -89,7 +104,20 @@ class Server {
         log.debug(`undeploy executor ${oid}`);
     }
     runJob(job) {
-        log.debug(`run job ${JSON.stringify(job)}`);
+        this.perf.jobs++;
+        this.perf.pending++;
+        const executor = this.executors.get(job.executor);
+        if (!executor) {
+            log.error(`can't dispatch job[${job.oid}] to executor[${job.executor}] --- executor not found`);
+            job.result = {
+                code: 'RESOURCE_NOT_FOUND',
+                errmsg: `executor[${job.executor}] not found`,
+            };
+            this.onJobCompleted(job);
+        }
+        else {
+            executor.runJob(job);
+        }
     }
 }
 exports.Server = Server;

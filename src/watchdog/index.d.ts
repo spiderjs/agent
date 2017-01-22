@@ -14,6 +14,15 @@ export class WatchDog {
     onDeployCompleted(oid: string, result: agent.IResult): void;
 
     /**
+     * call when executor is undeploying
+     */
+    onUndeploying(oid: string): void;
+
+    /**
+     * call when executor is undeploy completed
+     */
+    onUndeployingCompleted(oid: string, result: agent.IResult): void;
+    /**
      * call when agent update perf counter data
      */
     onUpdatePerf(perf: agent.IPerf): void;
