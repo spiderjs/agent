@@ -114,6 +114,7 @@ export class Server {
 
     private accept(): void {
         log.debug('recv accept event');
+        this.updatePerf();
     }
 
     private reject(result: agent.IResult): void {

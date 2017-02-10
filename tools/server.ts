@@ -11,3 +11,5 @@ const oid = process.env.SPIDERJS_AGENT ? process.env.SPIDERJS_AGENT : 'AG56718fd
 const watchdog = new WatchDog.WatchDog(oid);
 
 const server = new Server.Server(oid, watchdog);
+
+server.run();
