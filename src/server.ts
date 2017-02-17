@@ -69,6 +69,12 @@ export class Server {
                 this.runJob(job);
             });
         });
+
+        this.watchdog.on('TEST', (test: agent.ITest) => {
+            pcall(() => {
+                this.runTest(test);
+            });
+        });
     }
 
     public run() {
@@ -81,22 +87,37 @@ export class Server {
     public onJobCompleted(job: agent.IJob): void {
         this.perf.pending--;
 
+        log.debug('####', JSON.stringify(job));
+
         this.watchdog.onJobCompleted(job);
+
+        if (this.executors.get(job.oid)) {
+            this.undeploy(job.oid);
+        }
+    }
+
+    /**
+     * call when job prepared
+     */
+    public onJobPrepared(job: agent.IJob): void {
+        this.watchdog.onJobPrepared(job);
+    }
+    /**
+     * call when job running
+     */
+    public onJobRunning(job: agent.IJob): void {
+        this.watchdog.onJobRunning(job);
     }
 
     public onDeployCompleted(oid: string, result: agent.IResult): void {
         this.watchdog.onDeployCompleted(oid, result);
+        if (result.code !== 'SUCCESS') {
+            this.undeploy(oid);
+        }
     }
 
     public onUndeployCompleted(oid: string, result: agent.IResult): void {
-        const executor = this.executors.get(oid);
-
-        if (executor) {
-            executor.stop();
-            this.executors.delete(oid);
-
-            this.watchdog.onUndeployingCompleted(oid, result);
-        }
+        this.watchdog.onUndeployingCompleted(oid, result);
     }
 
     private updatePerf(): void {
@@ -139,7 +160,15 @@ export class Server {
     }
 
     private undeploy(oid: string): void {
-        log.debug(`undeploy executor ${oid}`);
+        log.debug(`undeploy executor ${oid}`)
+        const executor = this.executors.get(oid)
+        if (executor) {
+            this.executors.delete(oid);
+            executor.stop();
+            log.debug(`undeploy executor ${oid} -- success`)
+        } else {
+            log.debug(`undeploy executor ${oid} -- not found`)
+        }
     }
 
     private runJob(job: agent.IJob): void {
@@ -160,4 +189,31 @@ export class Server {
             executor.runJob(job);
         }
     }
+
+    private runTest(test: agent.ITest): void {
+        const config = {
+            oid: test.oid as string,
+            script: test.script,
+            receiver: test.receiver,
+            concurrent: 1
+        }
+
+        const executor = new exec.Executor(config, this);
+
+        this.executors.set(config.oid, executor);
+
+        executor.run();
+
+        const job = {
+            oid: test.oid as string,
+            executor: test.oid as string,
+            args: test.args
+        }
+
+        this.perf.jobs++;
+        this.perf.pending++;
+
+        executor.runJob(job);
+    }
+
 }

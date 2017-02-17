@@ -54,6 +54,12 @@ export class Executor {
 
             this.server.onJobCompleted(job);
         });
+
+        for (const worker of this.workers.values()) {
+            log.debug(`stop executor[${this.config.oid}] worker[${worker.id}] `);
+            const sendevent: agent.IWorkerEvent = { event: 'UNDEPLOY' };
+            worker.process.send(sendevent);
+        }
     }
 
     public runJob(job: agent.IJob): void {
@@ -64,6 +70,8 @@ export class Executor {
 
                 worker.process.send(sendevent);
 
+                this.server.onJobPrepared(job);
+
                 return;
             }
         }
@@ -71,6 +79,8 @@ export class Executor {
         log.debug(`enqueue job[${job.oid}]`);
 
         this.fifo.enqueue(job);
+
+        this.server.onJobPrepared(job);
     }
 
     private initWorker(worker: IWorker): void {
@@ -126,6 +136,16 @@ export class Executor {
                 break;
             }
 
+            case 'JOB_RUNNING': {
+                const job = event.evtarg as agent.IJob;
+
+                log.debug(`executor[${this.config.oid}] worker[${worker.id}] start job[${job.oid}]`);
+
+                this.server.onJobRunning(job);
+
+                break;
+            }
+
             case 'JOB_COMPLETED': {
                 const job = event.evtarg as agent.IJob;
 
@@ -151,7 +171,7 @@ export class Executor {
                 this.workers.delete(worker.id);
 
                 if (this.workers.size === 0) {
-                    this.server.onUndeployCompleted(this.config.oid, { code: 'SUCCESS' });
+                    this.server.onDeployCompleted(this.config.oid, result);
                 }
 
                 break;
@@ -162,4 +182,3 @@ export class Executor {
         }
     }
 }
-

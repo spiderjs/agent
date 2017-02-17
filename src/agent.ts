@@ -5,6 +5,23 @@ export interface IResult {
     errmsg?: string;
 }
 
+
+export type ReceiverType = 'HTTP_HTTPS_RECIVER';
+
+// tslint:disable-next-line:interface-name
+export interface Receiver {
+    oid?: string;
+    vendor: string;
+    type: ReceiverType;
+
+    httpHttpsReciver?: IHttpHttpsReciver;
+}
+
+export interface IHttpHttpsReciver {
+    url: string;
+    signKey: string;
+
+}
 /**
  * The performance counter data
  */
@@ -24,13 +41,21 @@ export interface IJob {
 
 export interface IExecutor {
     oid: string;
-    agent: string;
+    agent?: string;
     script: string;
-    receiver: string;
+    receiver?: Receiver;
     concurrent?: number;
 }
 
-export type WorkEvent = 'STARTED' | 'INIT_SUCCESS' | 'INIT_FAILED' | 'JOB_COMPLETED' | 'INIT' | 'RUN_JOB' | 'UNDEPLOY';
+export interface ITest {
+    oid?: string;
+    agents: string[];
+    script: string;
+    receiver?: Receiver;
+    args: string;
+}
+
+export type WorkEvent = 'STARTED' | 'INIT_SUCCESS' | 'INIT_FAILED' | 'JOB_COMPLETED' | 'INIT' | 'RUN_JOB' | 'JOB_RUNNING' | 'UNDEPLOY';
 
 export interface IWorkerEvent {
     event: WorkEvent;
@@ -73,7 +98,14 @@ export interface IWatchDog {
      * call when job completed
      */
     onJobCompleted(job: IJob): void;
-
+    /**
+     * call when job prepared
+     */
+    onJobPrepared(job: IJob): void;
+    /**
+     * call when job running
+     */
+    onJobRunning(job: IJob): void;
     /**
      * event listener
      */

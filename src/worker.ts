@@ -2,22 +2,31 @@ import agent = require('./agent');
 import process = require('process');
 import logger = require('log4js');
 import vm = require('vm');
+import Horseman = require('./horseman');
+import util = require('util');
 
-const log = logger.getLogger('spider-agent-worker');
+let log: logger.Logger;
 
 let config: agent.IExecutor;
 let script: vm.Script;
+
+let horseman: Horseman.Horseman;
 
 function send(message: any) {
     if (process.send) {
         process.send(message);
     }
-
 }
 
 function init(event: agent.IWorkerEvent) {
     config = event.evtarg as agent.IExecutor;
+    log = logger.getLogger(`executor[${config.oid}]`);
+
     try {
+        horseman = new Horseman.Horseman({
+            timeout: 50000,
+            loadImages: false
+        });
         script = new vm.Script(Buffer.from(config.script, 'base64').toString(), { filename: config.oid });
         const sendevent: agent.IWorkerEvent = { event: 'INIT_SUCCESS' };
         send(sendevent);
@@ -36,11 +45,50 @@ function init(event: agent.IWorkerEvent) {
 function runJob(job: agent.IJob) {
     log.debug(`executor[${config.oid}] run job[${job.oid}] ...`);
 
-    const context = vm.createContext({});
+    send({ event: 'JOB_RUNNING', evtarg: job });
+
+
 
     try {
+        const context = vm.createContext({
+            log,
+            horseman
+        });
+        // load spider handlers
         script.runInContext(context);
+
+        const handlers = context as any;
+
+        if (!handlers.pageHandler) {
+            job.result = { code: 'FAILED', errmsg: 'expect pageHandler' };
+            send({ event: 'JOB_COMPLETED', evtarg: job });
+            return;
+        }
+
+        if (!handlers.url) {
+            job.result = { code: 'FAILED', errmsg: 'expect url' };
+            send({ event: 'JOB_COMPLETED', evtarg: job });
+            return;
+        }
+
+        horseman.open(handlers.url)
+            .evaluate(handlers.pageHandler)
+            .then((data: any) => {
+                if (handlers.dataHandler) {
+                    data = handlers.dataHandler(data)
+                }
+                log.debug('data', data)
+                job.result = { code: 'SUCCESS' };
+                send({ event: 'JOB_COMPLETED', evtarg: job });
+            }, (err: Error) => {
+                job.result = { code: 'FAILED', errmsg: err.message };
+                send({ event: 'JOB_COMPLETED', evtarg: job });
+            })
+            .close();
+
+
     } catch (err) {
+        horseman.close();
         log.error(`executor[${config.oid}] run job[${job.oid}] -- failed\n\t${err.stack}`);
 
         job.result = {
@@ -67,6 +115,7 @@ function onWorkEvent(event: agent.IWorkerEvent): void {
         }
 
         case 'UNDEPLOY': {
+            log.debug(`executor[${config.oid}] undeployed`)
             process.exit(0);
             break;
         }
@@ -87,5 +136,3 @@ process.on('message', (event: agent.IWorkerEvent) => {
 const sendevent: agent.IWorkerEvent = { event: 'STARTED' };
 
 send(sendevent);
-
-

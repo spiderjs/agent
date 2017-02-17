@@ -39,6 +39,15 @@ export class WatchDog {
     onJobCompleted(job: agent.IJob): void;
 
     /**
+     * call when job prepared
+     */
+    onJobPrepared(job: agent.IJob): void;
+    /**
+     * call when job running
+     */
+    onJobRunning(job: agent.IJob): void;
+
+    /**
      * event listener
      */
     on(event: string | symbol, listener: Function): this;
