@@ -48,6 +48,16 @@ export class WatchDog {
     onJobRunning(job: agent.IJob): void;
 
     /**
+     * call when spider data prepared
+     */
+    onData(data: agent.IData): void;
+
+    /**
+     * call when spider script call runjob method
+     */
+    onRunJob(job: agent.IJob): void;
+
+    /**
      * event listener
      */
     on(event: string | symbol, listener: Function): this;

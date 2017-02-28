@@ -120,4 +120,29 @@ WatchDog.prototype.onJobRunning = function (job) {
 
 };
 
+WatchDog.prototype.onData = function (data) {
+
+    this.stream.write({
+        event: 'DATA',
+        oid: this.oid,
+        data: data
+    });
+
+};
+
+WatchDog.prototype.onRunJob = function (job) {
+    logger.debug(`run job\n${JSON.stringify(job)}`);
+    this.client.runJob(job, (err, response) => {
+        if (err) {
+            logger.error(err);
+        } else {
+            if (response.code !== 'SUCCESS') {
+                logger.error(response.errmsg);
+            } else {
+                logger.debug(`run job -- success\n${JSON.stringify(job)}`);
+            }
+        }
+    });
+};
+
 module.exports.WatchDog = WatchDog;

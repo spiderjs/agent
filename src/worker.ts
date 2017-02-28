@@ -23,10 +23,6 @@ function init(event: agent.IWorkerEvent) {
     log = logger.getLogger(`executor[${config.oid}]`);
 
     try {
-        horseman = new Horseman.Horseman({
-            timeout: 50000,
-            loadImages: false
-        });
         script = new vm.Script(Buffer.from(config.script, 'base64').toString(), { filename: config.oid });
         const sendevent: agent.IWorkerEvent = { event: 'INIT_SUCCESS' };
         send(sendevent);
@@ -43,16 +39,37 @@ function init(event: agent.IWorkerEvent) {
 }
 
 function runJob(job: agent.IJob) {
-    log.debug(`executor[${config.oid}] run job[${job.oid}] ...`);
+    log.debug(`executor[${config.oid}] run job[${JSON.stringify(job)}] ...`);
 
     send({ event: 'JOB_RUNNING', evtarg: job });
 
-
-
     try {
+        horseman = new Horseman.Horseman({
+            timeout: 10000,
+            loadImages: false
+        });
+
+        let args: any
+
+        if (job.args) {
+            args = JSON.parse(job.args)
+        }
+
         const context = vm.createContext({
+            args,
             log,
-            horseman
+            executor: config,
+            horseman,
+            runjob(executor: string, context: any) {
+                send({
+                    event: 'RUN_JOB', evtarg: {
+                        executor,
+                        args: context ? JSON.stringify(context) : undefined,
+                        rootjob: job.rootjob ? job.rootjob : job.oid,
+                        parentjob: job.oid
+                    }
+                });
+            }
         });
         // load spider handlers
         script.runInContext(context);
@@ -77,7 +94,15 @@ function runJob(job: agent.IJob) {
                 if (handlers.dataHandler) {
                     data = handlers.dataHandler(data)
                 }
-                log.debug('data', data)
+
+                if (data) {
+                    send({
+                        event: 'DATA', evtarg: {
+                            job: job.oid,
+                            content: Buffer.from(JSON.stringify(data)).toString('base64')
+                        }
+                    });
+                }
                 job.result = { code: 'SUCCESS' };
                 send({ event: 'JOB_COMPLETED', evtarg: job });
             }, (err: Error) => {

@@ -18,7 +18,7 @@ function pcall(fun: Function): boolean {
 }
 
 export class Server {
-    public perfUpdateInterval: number = 60000;
+    public perfUpdateInterval: number = 6000;
 
     public watchdog: agent.IWatchDog;
     private oid: string;
@@ -91,9 +91,13 @@ export class Server {
 
         this.watchdog.onJobCompleted(job);
 
-        if (this.executors.get(job.oid)) {
-            this.undeploy(job.oid);
+        if (this.executors.get(job.oid as string)) {
+            this.undeploy(job.oid as string);
         }
+    }
+
+    public onData(data: agent.IData): void {
+        this.watchdog.onData(data);
     }
 
     /**
@@ -118,6 +122,10 @@ export class Server {
 
     public onUndeployCompleted(oid: string, result: agent.IResult): void {
         this.watchdog.onUndeployingCompleted(oid, result);
+    }
+
+    public onRunJob(job: agent.IJob) {
+        this.watchdog.onRunJob(job);
     }
 
     private updatePerf(): void {

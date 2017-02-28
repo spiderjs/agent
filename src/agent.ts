@@ -33,10 +33,17 @@ export interface IPerf {
 }
 
 export interface IJob {
-    oid: string;
+    oid?: string;
+    rootjob?: string; // parent job oid
+    parentjob?: string;
     executor: string;
     args?: string;
     result?: IResult;
+}
+
+export interface IData {
+    job: string;
+    content: string;
 }
 
 export interface IExecutor {
@@ -55,12 +62,12 @@ export interface ITest {
     args: string;
 }
 
-export type WorkEvent = 'STARTED' | 'INIT_SUCCESS' | 'INIT_FAILED' | 'JOB_COMPLETED' | 'INIT' | 'RUN_JOB' | 'JOB_RUNNING' | 'UNDEPLOY';
+export type WorkEvent = 'STARTED' | 'INIT_SUCCESS' | 'INIT_FAILED' | 'JOB_COMPLETED' | 'INIT' | 'RUN_JOB' | 'JOB_RUNNING' | 'UNDEPLOY' | 'DATA';
 
 export interface IWorkerEvent {
     event: WorkEvent;
 
-    evtarg?: IExecutor | IJob | IExecutor | IResult;
+    evtarg?: IExecutor | IJob | IExecutor | IResult | IData;
 }
 
 export interface IWatchDog {
@@ -110,6 +117,16 @@ export interface IWatchDog {
      * event listener
      */
     on(event: string | symbol, listener: Function): this;
+
+    /**
+     * call when spider data prepared
+     */
+    onData(data: IData): void;
+
+    /**
+     * call when spider script call runjob method
+     */
+    onRunJob(job: IJob): void;
 
     run(): void;
 }

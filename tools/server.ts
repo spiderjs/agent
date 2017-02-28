@@ -6,7 +6,7 @@ import WatchDog = require('../src/watchdog');
 
 const log = logger.getLogger('spiderjs-agent');
 
-const oid = process.env.SPIDERJS_AGENT ? process.env.SPIDERJS_AGENT : 'AG568ef4dd52800000';
+const oid = process.env.SPIDERJS_AGENT ? process.env.SPIDERJS_AGENT : 'AG5696dc7922c00000';
 
 const watchdog = new WatchDog.WatchDog(oid);
 
