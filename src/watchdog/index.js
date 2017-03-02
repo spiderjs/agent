@@ -10,6 +10,7 @@ function WatchDog(oid, remote) {
     var spiderjs = grpc.load(proto.get('spiderjs.proto')).spiderjs;
 
     logger.info(`start agent[${this.oid}] ..`);
+    logger.info(`connect to watchdog [${this.remote}] ..`);
 
     this.client = new spiderjs.WatchDog(
         this.remote,
