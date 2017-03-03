@@ -5,7 +5,7 @@
     "main": "index.js",
     "scripts": {
         "dev": "nodemon -e js,ts --watch tools --watch src tools/dev.js test",
-        "agent": "nodemon -e js,ts --watch tools --watch src tools/dev.js agent",
+        "agent": "nodemon -e js,ts --watch tools --watch src build/bin/server.js",
         "build": "tsc -p . && node tools/copyfiles.js"
     },
     "repository": {

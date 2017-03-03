@@ -44,10 +44,24 @@ function runJob(job: agent.IJob) {
     send({ event: 'JOB_RUNNING', evtarg: job });
 
     try {
-        horseman = new Horseman.Horseman({
-            timeout: 10000,
-            loadImages: false
-        });
+
+        if (job.proxy) {
+            log.debug(`use proxy :${JSON.stringify(job.proxy)}`);
+            horseman = new Horseman.Horseman({
+                timeout: 10000,
+                loadImages: false,
+                proxy: `${job.proxy.ip}:${job.proxy.port}`,
+                proxyType: job.proxy.type,
+                proxyAuth: job.proxy.user ? `${job.proxy.user}:${job.proxy.passwd}` : null
+            });
+        } else {
+            horseman = new Horseman.Horseman({
+                timeout: 10000,
+                loadImages: false
+            });
+        }
+
+
 
         let args: any
 
@@ -91,6 +105,7 @@ function runJob(job: agent.IJob) {
         horseman.open(handlers.url)
             .evaluate(handlers.pageHandler)
             .then((data: any) => {
+                horseman.close();
                 if (handlers.dataHandler) {
                     data = handlers.dataHandler(data)
                 }
@@ -106,14 +121,11 @@ function runJob(job: agent.IJob) {
                 job.result = { code: 'SUCCESS' };
                 send({ event: 'JOB_COMPLETED', evtarg: job });
             }, (err: Error) => {
+                horseman.close();
                 job.result = { code: 'FAILED', errmsg: err.message };
                 send({ event: 'JOB_COMPLETED', evtarg: job });
-            })
-            .close();
-
-
+            });
     } catch (err) {
-        horseman.close();
         log.error(`executor[${config.oid}] run job[${job.oid}] -- failed\n\t${err.stack}`);
 
         job.result = {
@@ -161,3 +173,4 @@ process.on('message', (event: agent.IWorkerEvent) => {
 const sendevent: agent.IWorkerEvent = { event: 'STARTED' };
 
 send(sendevent);
+;

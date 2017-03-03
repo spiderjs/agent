@@ -36,9 +36,19 @@ export interface IJob {
     oid?: string;
     rootjob?: string; // parent job oid
     parentjob?: string;
+    proxy?: IProxy;
     executor: string;
     args?: string;
     result?: IResult;
+}
+
+export interface IProxy {
+    oid?: string;
+    ip: string;
+    port: string;
+    type: string;
+    user?: string;
+    passwd?: string;
 }
 
 export interface IData {
