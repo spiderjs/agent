@@ -31,7 +31,7 @@ function init(event: agent.IWorkerEvent) {
 
         const sendevent: agent.IWorkerEvent = {
             event: 'INIT_FAILED',
-            evtarg: { code: 'SCRIPT_EXCEPTION', errmsg: error.toString() }
+            evtarg: { code: 'SCRIPT_EXCEPTION', errmsg: error.toString() },
         };
 
         send(sendevent);
@@ -48,25 +48,23 @@ function runJob(job: agent.IJob) {
         if (job.proxy) {
             log.debug(`use proxy :${JSON.stringify(job.proxy)}`);
             horseman = new Horseman.Horseman({
-                timeout: 10000,
                 loadImages: false,
                 proxy: `${job.proxy.ip}:${job.proxy.port}`,
+                proxyAuth: job.proxy.user ? `${job.proxy.user}:${job.proxy.passwd}` : null,
                 proxyType: job.proxy.type,
-                proxyAuth: job.proxy.user ? `${job.proxy.user}:${job.proxy.passwd}` : null
+                timeout: 10000,
             });
         } else {
             horseman = new Horseman.Horseman({
+                loadImages: false,
                 timeout: 10000,
-                loadImages: false
             });
         }
 
-
-
-        let args: any
+        let args: any;
 
         if (job.args) {
-            args = JSON.parse(job.args)
+            args = JSON.parse(job.args);
         }
 
         const context = vm.createContext({
@@ -74,16 +72,16 @@ function runJob(job: agent.IJob) {
             log,
             executor: config,
             horseman,
-            runjob(executor: string, context: any) {
+            runjob(executor: string, ctx: any) {
                 send({
                     event: 'RUN_JOB', evtarg: {
                         executor,
-                        args: context ? JSON.stringify(context) : undefined,
+                        args: context ? JSON.stringify(ctx) : undefined,
+                        parentjob: job.oid,
                         rootjob: job.rootjob ? job.rootjob : job.oid,
-                        parentjob: job.oid
-                    }
+                    },
                 });
-            }
+            },
         });
         // load spider handlers
         script.runInContext(context);
@@ -107,15 +105,15 @@ function runJob(job: agent.IJob) {
             .then((data: any) => {
                 horseman.close();
                 if (handlers.dataHandler) {
-                    data = handlers.dataHandler(data)
+                    data = handlers.dataHandler(data);
                 }
 
                 if (data) {
                     send({
                         event: 'DATA', evtarg: {
+                            content: Buffer.from(JSON.stringify(data)).toString('base64'),
                             job: job.oid,
-                            content: Buffer.from(JSON.stringify(data)).toString('base64')
-                        }
+                        },
                     });
                 }
                 job.result = { code: 'SUCCESS' };
@@ -152,7 +150,7 @@ function onWorkEvent(event: agent.IWorkerEvent): void {
         }
 
         case 'UNDEPLOY': {
-            log.debug(`executor[${config.oid}] undeployed`)
+            log.debug(`executor[${config.oid}] undeployed`);
             process.exit(0);
             break;
         }
