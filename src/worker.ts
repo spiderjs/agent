@@ -1,3 +1,4 @@
+import path = require('path');
 import agent = require('./agent');
 import process = require('process');
 import logger = require('log4js');
@@ -5,7 +6,13 @@ import vm = require('vm');
 import Horseman = require('./horseman');
 import util = require('util');
 
-let log: logger.Logger;
+const log = logger.getLogger(`spiderjs-agent-worker`);
+
+const configpath = path.join(__dirname, '/../../config/log.json');
+
+log.debug(configpath);
+
+logger.configure(configpath, { reloadSecs: 600 });
 
 let config: agent.IExecutor;
 let script: vm.Script;
@@ -20,7 +27,6 @@ function send(message: any) {
 
 function init(event: agent.IWorkerEvent) {
     config = event.evtarg as agent.IExecutor;
-    log = logger.getLogger(`executor[${config.oid}]`);
 
     try {
         script = new vm.Script(Buffer.from(config.script, 'base64').toString(), { filename: config.oid });
