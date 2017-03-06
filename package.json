@@ -30,7 +30,7 @@
         "node-horseman": "^3.2.0",
         "phantomjs-prebuilt": "^2.1.14",
         "typescript-collections": "^1.2.3",
-        "spiderjs-proto": "^0.0.1"
+        "spiderjs-proto": "^0.0.2"
     },
     "devDependencies": {
         "@types/log4js": "^0.0.32",

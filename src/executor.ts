@@ -27,12 +27,15 @@ export class Executor {
 
     constructor(private config: agent.IExecutor, private server: server.Server) {
 
-        this.config.concurrent = this.config.concurrent ? this.config.concurrent : os.cpus().length;
+        if (!this.config.concurrent || this.config.concurrent === 0) {
+            this.config.concurrent = os.cpus().length;
+        }
     }
 
     public run() {
         log.debug(JSON.stringify(this.config));
-        for (let i = 0; i < this.config.concurrent; i++) {
+        const concurrent = this.config.concurrent as number;
+        for (let i = 0; i < concurrent; i++) {
             log.debug(`start executor[${this.config.oid}] worker(${i}) ...`);
             const child = child_process.fork(workerjs, undefined, { cwd });
             log.debug(`start executor[${this.config.oid}] worker(${i}) -- success`);
