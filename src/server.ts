@@ -96,7 +96,7 @@ export class Server {
         }
     }
 
-    public onData(data: agent.IData): void {
+    public onData(config: agent.IExecutor, data: agent.IData): void {
         this.watchdog.onData(data);
     }
 
@@ -200,11 +200,11 @@ export class Server {
 
     private runTest(test: agent.ITest): void {
         const config = {
+            concurrent: 1,
+            dataHandler: test.dataHandler,
             oid: test.oid as string,
             script: test.script,
-            receiver: test.receiver,
-            concurrent: 1
-        }
+        };
 
         const executor = new exec.Executor(config, this);
 
@@ -213,10 +213,10 @@ export class Server {
         executor.run();
 
         const job = {
-            oid: test.oid as string,
+            args: test.args,
             executor: test.oid as string,
-            args: test.args
-        }
+            oid: test.oid as string,
+        };
 
         this.perf.jobs++;
         this.perf.pending++;

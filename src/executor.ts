@@ -183,9 +183,10 @@ export class Executor {
             case 'DATA': {
                 const result = event.evtarg as agent.IData;
 
+                // tslint:disable-next-line:max-line-length
                 log.debug(`executor[${this.config.oid}] worker[${worker.id}] handled job[${result.job}] data\n${result.content}`);
 
-                this.server.onData(result);
+                this.server.onData(this.config, result);
 
                 break;
             }
@@ -193,6 +194,7 @@ export class Executor {
             case 'RUN_JOB': {
                 const result = event.evtarg as agent.IJob;
 
+                // tslint:disable-next-line:max-line-length
                 log.debug(`executor[${this.config.oid}] worker[${worker.id}] handled run job command [${result.oid}] data\n${result.args}`);
 
                 this.server.onRunJob(result);

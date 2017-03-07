@@ -5,23 +5,16 @@ export interface IResult {
     errmsg?: string;
 }
 
-
-export type ReceiverType = 'HTTP_HTTPS_RECIVER';
-
 // tslint:disable-next-line:interface-name
-export interface Receiver {
+export interface DataHandler {
     oid?: string;
+    name?: string;
     vendor: string;
-    type: ReceiverType;
-
-    httpHttpsReciver?: IHttpHttpsReciver;
-}
-
-export interface IHttpHttpsReciver {
+    locked?: boolean;
     url: string;
     signKey: string;
-
 }
+
 /**
  * The performance counter data
  */
@@ -60,7 +53,7 @@ export interface IExecutor {
     oid: string;
     agent?: string;
     script: string;
-    receiver?: Receiver;
+    dataHandler?: DataHandler;
     concurrent?: number;
 }
 
@@ -68,11 +61,12 @@ export interface ITest {
     oid?: string;
     agents: string[];
     script: string;
-    receiver?: Receiver;
+    dataHandler?: DataHandler;
     args: string;
 }
 
-export type WorkEvent = 'STARTED' | 'INIT_SUCCESS' | 'INIT_FAILED' | 'JOB_COMPLETED' | 'INIT' | 'RUN_JOB' | 'JOB_RUNNING' | 'UNDEPLOY' | 'DATA';
+export type WorkEvent = 'STARTED' | 'INIT_SUCCESS' | 'INIT_FAILED'
+    | 'JOB_COMPLETED' | 'INIT' | 'RUN_JOB' | 'JOB_RUNNING' | 'UNDEPLOY' | 'DATA';
 
 export interface IWorkerEvent {
     event: WorkEvent;
@@ -126,6 +120,7 @@ export interface IWatchDog {
     /**
      * event listener
      */
+    // tslint:disable-next-line:ban-types
     on(event: string | symbol, listener: Function): this;
 
     /**
