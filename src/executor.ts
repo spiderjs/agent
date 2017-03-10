@@ -195,7 +195,7 @@ export class Executor {
                 const result = event.evtarg as agent.IJob;
 
                 // tslint:disable-next-line:max-line-length
-                log.debug(`executor[${this.config.oid}] worker[${worker.id}] handled run job command [${result.oid}] data\n${result.args}`);
+                log.debug(`executor[${this.config.oid}] worker[${worker.id}] handled run job command \n${JSON.stringify(result.args)}`);
 
                 this.server.onRunJob(result);
 

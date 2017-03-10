@@ -13,7 +13,7 @@ log.debug(configpath);
 
 logger.configure(configpath, { reloadSecs: 600 });
 
-const oid = process.env.SPIDERJS_AGENT ? process.env.SPIDERJS_AGENT : 'AG56a8cbaffb800000';
+const oid = process.env.SPIDERJS_AGENT ? process.env.SPIDERJS_AGENT : 'AG56a0e9eecb400000';
 const url = process.env.SPIDERJS_WATCHDOG_URL ? process.env.SPIDERJS_WATCHDOG_URL : 'localhost:1714';
 const watchdog = new WatchDog.WatchDog(oid, url);
 
