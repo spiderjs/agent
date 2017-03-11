@@ -184,7 +184,7 @@ export class Executor {
                 const result = event.evtarg as agent.IData;
 
                 // tslint:disable-next-line:max-line-length
-                log.debug(`executor[${this.config.oid}] worker[${worker.id}] handled job[${result.job}] data\n${result.content}`);
+                log.debug(`executor[${this.config.oid}] worker[${worker.id}] handled job[${result.job}] data`);
 
                 this.server.onData(this.config, result);
 

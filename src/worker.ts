@@ -67,6 +67,14 @@ function runJob(job: agent.IJob) {
             });
         }
 
+        horseman.on('consoleMessage', (msg:any) => {
+          log.debug(msg);
+        })
+
+        horseman.on('urlChanged', (msg:any) => {
+          log.debug("url changed: ",msg);
+        })
+
         let args: any;
 
         if (job.args) {
@@ -106,7 +114,25 @@ function runJob(job: agent.IJob) {
             return;
         }
 
-        horseman.open(handlers.url)
+        horseman = horseman
+            .userAgent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36")
+            .open(handlers.url);
+
+        if (handlers.click) {
+          horseman = horseman.click(handlers.click);
+        }
+
+        if (handlers.waitfor) {
+          log.debug(`waitForSelector :${handlers.waitfor}`);
+          horseman = horseman.waitForSelector(handlers.waitfor);
+        }
+
+        if (handlers.screenshot) {
+          horseman = horseman.screenshot(handlers.screenshot);
+        }
+        
+        //
+        horseman
             .evaluate(handlers.pageHandler)
             .then((data: any) => {
                 horseman.close();
@@ -124,7 +150,8 @@ function runJob(job: agent.IJob) {
                 }
                 job.result = { code: 'SUCCESS' };
                 send({ event: 'JOB_COMPLETED', evtarg: job });
-            }, (err: Error) => {
+            }).then(()=>{},(err: Error) => {
+                log.error("horseman error", err.stack);
                 horseman.close();
                 job.result = { code: 'FAILED', errmsg: err.message };
                 send({ event: 'JOB_COMPLETED', evtarg: job });
