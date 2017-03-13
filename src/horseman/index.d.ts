@@ -1,15 +1,15 @@
 export class Horseman {
     constructor(config?: any);
-    close(): void;
-    open(url: string): this;
-    openTab(url: string): this;
-    closeTab(tabNum: number): this;
-    evaluate(fn: Function, ...args: any[]): this;
-    then(success?: Function, failed?: Function): this;
-    on(name: string,fn: Function): this;
-    screenshot(name: string): this;
-    userAgent(name: string): this;
-    waitForNextPage(): this;
-    click(selector: string): this;
-    waitForSelector(selector: string): this;
+    public close(): void;
+    public open(url: string): this;
+    public openTab(url: string): this;
+    public closeTab(tabNum: number): this;
+    public evaluate(fn: Function, ...args: any[]): this;
+    public then(success?: Function, failed?: Function): this;
+    public on(name: string, fn: Function): this;
+    public screenshot(name: string): this;
+    public userAgent(name: string): this;
+    public waitForNextPage(): this;
+    public click(selector: string): this;
+    public waitForSelector(selector: string): this;
 }

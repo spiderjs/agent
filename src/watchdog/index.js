@@ -3,11 +3,13 @@ const events = require('events');
 const logger = require('log4js').getLogger('watchdog');
 const proto = require('spiderjs-proto');
 
+let spiderjs;
+
 function WatchDog(oid, remote) {
     this.emitter = new events.EventEmitter();
     this.oid = oid;
     this.remote = remote ? remote : 'localhost:1714';
-    var spiderjs = grpc.load(proto.get('spiderjs.proto')).spiderjs;
+    spiderjs = grpc.load(proto.get('spiderjs.proto')).spiderjs;
 
     logger.info(`start agent[${this.oid}] ..`);
     logger.info(`connect to watchdog [${this.remote}] ..`);
@@ -27,6 +29,8 @@ WatchDog.prototype.on = function (evt, fun) {
 
 WatchDog.prototype.connect = function () {
 
+    logger.debug('connect to grpc server ...');
+
     this.stream = this.client.online();
 
     this.stream.write({
@@ -35,7 +39,6 @@ WatchDog.prototype.connect = function () {
     });
 
     this.stream.on('data', (command) => {
-
         try {
             this.onCommand(command);
         } catch (error) {
@@ -48,6 +51,10 @@ WatchDog.prototype.connect = function () {
         logger.debug(`stream status changed :${status.code}`);
 
         this.stream.cancel();
+
+        this.client = new spiderjs.WatchDog(
+            this.remote,
+            grpc.credentials.createInsecure());
 
         this.connect();
     });
@@ -122,7 +129,6 @@ WatchDog.prototype.onJobRunning = function (job) {
 };
 
 WatchDog.prototype.onData = function (data) {
-
     this.stream.write({
         event: 'DATA',
         oid: this.oid,

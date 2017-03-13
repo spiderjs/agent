@@ -54,7 +54,7 @@ function runJob(job: agent.IJob) {
         if (job.proxy) {
             log.debug(`use proxy :${JSON.stringify(job.proxy)}`);
             horseman = new Horseman.Horseman({
-                loadImages: false,
+                // loadImages: false,
                 proxy: `${job.proxy.ip}:${job.proxy.port}`,
                 proxyAuth: job.proxy.user ? `${job.proxy.user}:${job.proxy.passwd}` : null,
                 proxyType: job.proxy.type,
@@ -62,18 +62,18 @@ function runJob(job: agent.IJob) {
             });
         } else {
             horseman = new Horseman.Horseman({
-                loadImages: false,
+                // loadImages: false,
                 timeout: 10000,
             });
         }
 
-        horseman.on('consoleMessage', (msg:any) => {
-          log.debug(msg);
-        })
+        horseman.on('consoleMessage', (msg: any) => {
+            log.debug(msg);
+        });
 
-        horseman.on('urlChanged', (msg:any) => {
-          log.debug("url changed: ",msg);
-        })
+        horseman.on('urlChanged', (msg: any) => {
+            log.debug('url changed: ', msg);
+        });
 
         let args: any;
 
@@ -115,22 +115,23 @@ function runJob(job: agent.IJob) {
         }
 
         horseman = horseman
-            .userAgent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36")
+            // tslint:disable-next-line:max-line-length
+            .userAgent(`Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36`)
             .open(handlers.url);
 
         if (handlers.click) {
-          horseman = horseman.click(handlers.click);
+            horseman = horseman.click(handlers.click);
         }
 
         if (handlers.waitfor) {
-          log.debug(`waitForSelector :${handlers.waitfor}`);
-          horseman = horseman.waitForSelector(handlers.waitfor);
+            log.debug(`waitForSelector :${handlers.waitfor}`);
+            horseman = horseman.waitForSelector(handlers.waitfor);
         }
 
         if (handlers.screenshot) {
-          horseman = horseman.screenshot(handlers.screenshot);
+            horseman = horseman.screenshot(handlers.screenshot);
         }
-        
+
         //
         horseman
             .evaluate(handlers.pageHandler)
@@ -150,8 +151,10 @@ function runJob(job: agent.IJob) {
                 }
                 job.result = { code: 'SUCCESS' };
                 send({ event: 'JOB_COMPLETED', evtarg: job });
-            }).then(()=>{},(err: Error) => {
-                log.error("horseman error", err.stack);
+            }).then(() => {
+                log.debug('run spiderjs script -- success');
+            }, (err: Error) => {
+                log.error('horseman error', err.stack);
                 horseman.close();
                 job.result = { code: 'FAILED', errmsg: err.message };
                 send({ event: 'JOB_COMPLETED', evtarg: job });
