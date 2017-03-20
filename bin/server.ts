@@ -4,6 +4,7 @@ import logger = require('log4js');
 import process = require('process');
 import Server = require('../src/server');
 import WatchDog = require('../src/watchdog');
+import config = require('config');
 
 const log = logger.getLogger('spiderjs-agent');
 
@@ -13,10 +14,8 @@ log.debug(configpath);
 
 logger.configure(configpath, { reloadSecs: 600 });
 
-const oid = process.env.SPIDERJS_AGENT ? process.env.SPIDERJS_AGENT : 'AG56a0e9eecb400000';
-const url = process.env.SPIDERJS_WATCHDOG_URL ? process.env.SPIDERJS_WATCHDOG_URL : 'localhost:1714';
-const watchdog = new WatchDog.WatchDog(oid, url);
+const watchdog = new WatchDog.WatchDog(config.get<string>('agent'), config.get<string>('watchdog'));
 
-const server = new Server.Server(oid, watchdog);
+const server = new Server.Server(config.get<string>('agent'), watchdog);
 
 server.run();

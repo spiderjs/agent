@@ -23,8 +23,9 @@
   },
   "homepage": "https://github.com/spiderjs/agent#readme",
   "dependencies": {
-    "copy-dir": "^0.3.0",
-    "grpc": "^1.0.1",
+    "@types/config": "^0.0.32",
+    "config": "^1.25.1",
+    "grpc": "^1.1.2",
     "log4js": "^1.1.0",
     "nanotimer": "^0.3.14",
     "node-horseman": "^3.2.0",
@@ -33,11 +34,12 @@
     "typescript-collections": "^1.2.3"
   },
   "devDependencies": {
+    "@types/config": "^0.0.32",
     "@types/log4js": "^0.0.32",
     "@types/mocha": "^2.2.38",
     "@types/node": "^7.0.0",
     "eslint": "^3.14.0",
-    "eslint-plugin-node": "^3.0.5",
+    "eslint-plugin-node": "^4.2.1",
     "mocha": "^3.2.0",
     "mocha-typescript": "^1.0.15",
     "node-dev": "^3.1.3",

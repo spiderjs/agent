@@ -5,116 +5,130 @@ import logger = require('log4js');
 import vm = require('vm');
 import Horseman = require('./horseman');
 import util = require('util');
+import config = require('config');
 
 const log = logger.getLogger(`spiderjs-agent-worker`);
 
-const configpath = path.join(__dirname, '/../../config/log.json');
+class Worker {
+    private config: agent.IExecutor;
+    private script: vm.Script;
+    private horseman: Horseman.Horseman;
 
-log.debug(configpath);
-
-logger.configure(configpath, { reloadSecs: 600 });
-
-let config: agent.IExecutor;
-let script: vm.Script;
-
-let horseman: Horseman.Horseman;
-
-function send(message: any) {
-    if (process.send) {
-        process.send(message);
+    constructor() {
+        const configpath = path.join(__dirname, '/../../config/log.json');
+        logger.configure(configpath);
     }
-}
 
-function init(event: agent.IWorkerEvent) {
-    config = event.evtarg as agent.IExecutor;
+    public run(): void {
+        process.on('message', (event: agent.IWorkerEvent) => {
+            try {
+                this.onEvent(event);
+            } catch (error) {
+                log.error(`hande worker event -- failed\n${error.stack}`);
+            }
+        });
 
-    try {
-        script = new vm.Script(Buffer.from(config.script, 'base64').toString(), { filename: config.oid });
-        const sendevent: agent.IWorkerEvent = { event: 'INIT_SUCCESS' };
-        send(sendevent);
-    } catch (error) {
-        log.error(`init executor[${config.oid}] worker -- failed\n${error.stack}`);
+        const sendevent: agent.IWorkerEvent = { event: 'STARTED' };
 
-        const sendevent: agent.IWorkerEvent = {
-            event: 'INIT_FAILED',
-            evtarg: { code: 'SCRIPT_EXCEPTION', errmsg: error.toString() },
-        };
-
-        send(sendevent);
+        this.send(sendevent);
     }
-}
 
-function runJob(job: agent.IJob) {
-    log.debug(`executor[${config.oid}] run job[${JSON.stringify(job)}] ...`);
-
-    send({ event: 'JOB_RUNNING', evtarg: job });
-
-    try {
-
-        if (job.proxy) {
-            log.debug(`use proxy :${JSON.stringify(job.proxy)}`);
-            horseman = new Horseman.Horseman({
-                // loadImages: false,
-                proxy: `${job.proxy.ip}:${job.proxy.port}`,
-                proxyAuth: job.proxy.user ? `${job.proxy.user}:${job.proxy.passwd}` : null,
-                proxyType: job.proxy.type,
-                timeout: 10000,
-            });
-        } else {
-            horseman = new Horseman.Horseman({
-                // loadImages: false,
-                timeout: 10000,
-            });
+    private send(message: any): void {
+        if (process.send) {
+            process.send(message);
         }
+    }
 
-        horseman.on('consoleMessage', (msg: any) => {
-            log.debug(msg);
-        });
+    private onEvent(event: agent.IWorkerEvent): void {
+        switch (event.event) {
+            case 'INIT': {
 
-        horseman.on('urlChanged', (msg: any) => {
-            log.debug('url changed: ', msg);
-        });
+                this.onInit(event);
 
-        let args: any;
+                break;
+            }
 
-        if (job.args) {
-            args = JSON.parse(job.args);
+            case 'RUN_JOB': {
+                this.runJob(event.evtarg as agent.IJob);
+                break;
+            }
+
+            case 'UNDEPLOY': {
+                log.debug(`executor[${this.config.oid}] undeployed`);
+                process.exit(0);
+                break;
+            }
+
+            default:
+                log.error(`unknown event[${event.event}]`);
         }
+    }
 
-        const context = vm.createContext({
-            args,
-            log,
-            executor: config,
-            horseman,
-            runjob(executor: string, ctx: any) {
-                send({
-                    event: 'RUN_JOB', evtarg: {
-                        executor,
-                        args: context ? JSON.stringify(ctx) : undefined,
-                        parentjob: job.oid,
-                        rootjob: job.rootjob ? job.rootjob : job.oid,
-                    },
-                });
-            },
-        });
-        // load spider handlers
-        script.runInContext(context);
+    private onInit(event: agent.IWorkerEvent): void {
+        this.config = event.evtarg as agent.IExecutor;
 
-        const handlers = context as any;
+        try {
+            this.script = new vm.Script(
+                Buffer.from(this.config.script, 'base64').toString(),
+                {
+                    filename: this.config.oid,
+                },
+            );
+            const sendevent: agent.IWorkerEvent = { event: 'INIT_SUCCESS' };
+            this.send(sendevent);
+        } catch (error) {
+            log.error(`init executor[${this.config.oid}] worker -- failed\n${error.stack}`);
 
+            const sendevent: agent.IWorkerEvent = {
+                event: 'INIT_FAILED',
+                evtarg: { code: 'SCRIPT_EXCEPTION', errmsg: error.toString() },
+            };
+
+            this.send(sendevent);
+        }
+    }
+
+    private runJob(job: agent.IJob): void {
+        log.debug(`executor[${this.config.oid}] run job[${JSON.stringify(job)}] ...`);
+
+        this.send({ event: 'JOB_RUNNING', evtarg: job });
+
+        try {
+            const handlers = this.createContext(job);
+
+            if (handlers.rawHandler) {
+                handlers.rawHandler();
+                return;
+            }
+
+            this.handle(job, handlers);
+
+        } catch (error) {
+            log.error(`executor[${this.config.oid}] run job[${job.oid}] -- failed\n\t${error.stack}`);
+
+            job.result = {
+                code: 'SCRIPT_EXCEPTION',
+                errmsg: error.toString(),
+            };
+
+            this.send({ event: 'JOB_COMPLETED', evtarg: job });
+        }
+    }
+
+    private handle(job: agent.IJob, handlers: any): void {
         if (!handlers.pageHandler) {
             job.result = { code: 'FAILED', errmsg: 'expect pageHandler' };
-            send({ event: 'JOB_COMPLETED', evtarg: job });
+            this.send({ event: 'JOB_COMPLETED', evtarg: job });
             return;
         }
 
         if (!handlers.url) {
             job.result = { code: 'FAILED', errmsg: 'expect url' };
-            send({ event: 'JOB_COMPLETED', evtarg: job });
+            this.send({ event: 'JOB_COMPLETED', evtarg: job });
             return;
         }
 
-        horseman = horseman
+        let horseman = this.createHorseMan(job)
             // tslint:disable-next-line:max-line-length
             .userAgent(`Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36`)
             .open(handlers.url);
@@ -142,7 +156,7 @@ function runJob(job: agent.IJob) {
                 }
 
                 if (data) {
-                    send({
+                    this.send({
                         event: 'DATA', evtarg: {
                             content: Buffer.from(JSON.stringify(data)).toString('base64'),
                             job: job.oid,
@@ -150,61 +164,88 @@ function runJob(job: agent.IJob) {
                     });
                 }
                 job.result = { code: 'SUCCESS' };
-                send({ event: 'JOB_COMPLETED', evtarg: job });
+                this.send({ event: 'JOB_COMPLETED', evtarg: job });
             }).then(() => {
                 log.debug('run spiderjs script -- success');
             }, (err: Error) => {
                 log.error('horseman error', err.stack);
                 horseman.close();
                 job.result = { code: 'FAILED', errmsg: err.message };
-                send({ event: 'JOB_COMPLETED', evtarg: job });
+                this.send({ event: 'JOB_COMPLETED', evtarg: job });
             });
-    } catch (err) {
-        log.error(`executor[${config.oid}] run job[${job.oid}] -- failed\n\t${err.stack}`);
-
-        job.result = {
-            code: 'SCRIPT_EXCEPTION',
-            errmsg: err.toString(),
-        };
-
-        send({ event: 'JOB_COMPLETED', evtarg: job });
     }
-}
 
-function onWorkEvent(event: agent.IWorkerEvent): void {
-    switch (event.event) {
-        case 'INIT': {
+    private createContext(job: agent.IJob): any {
+        let args: any;
 
-            init(event);
-
-            break;
+        if (job.args) {
+            args = JSON.parse(job.args);
         }
 
-        case 'RUN_JOB': {
-            runJob(event.evtarg as agent.IJob);
-            break;
+        const context = vm.createContext({
+            args,
+            completed: () => {
+                job.result = { code: 'SUCCESS' };
+                this.send({ event: 'JOB_COMPLETED', evtarg: job });
+            },
+            data: (d: any) => {
+                this.send({
+                    event: 'DATA', evtarg: {
+                        content: Buffer.from(JSON.stringify(d)).toString('base64'),
+                        job: job.oid,
+                    },
+                });
+            },
+            log,
+            executor: config,
+            horseman: () => {
+                return this.createHorseMan(job);
+            },
+            runjob: (executor: string, ctx: any) => {
+                this.send({
+                    event: 'RUN_JOB', evtarg: {
+                        executor,
+                        args: context ? JSON.stringify(ctx) : undefined,
+                        parentjob: job.oid,
+                        rootjob: job.rootjob ? job.rootjob : job.oid,
+                    },
+                });
+            },
+        });
+
+        // load spider handlers
+        this.script.runInContext(context);
+
+        return context;
+    }
+
+    private createHorseMan(job: agent.IJob): Horseman.Horseman {
+        let horseman: Horseman.Horseman;
+        if (job.proxy) {
+            horseman = new Horseman.Horseman({
+                // loadImages: false,
+                proxy: `${job.proxy.ip}:${job.proxy.port}`,
+                proxyAuth: job.proxy.user ? `${job.proxy.user}:${job.proxy.passwd}` : null,
+                proxyType: job.proxy.type,
+                timeout: config.get<number>('timeout'),
+            });
+        } else {
+            horseman = new Horseman.Horseman({
+                // loadImages: false,
+                timeout: config.get<number>('timeout'),
+            });
         }
 
-        case 'UNDEPLOY': {
-            log.debug(`executor[${config.oid}] undeployed`);
-            process.exit(0);
-            break;
-        }
+        horseman.on('consoleMessage', (msg: any) => {
+            log.debug(msg);
+        });
 
-        default:
-            log.error(`unknown event[${event.event}]`);
+        horseman.on('urlChanged', (msg: any) => {
+            log.debug('url changed: ', msg);
+        });
+
+        return horseman;
     }
-}
+};
 
-process.on('message', (event: agent.IWorkerEvent) => {
-    try {
-        onWorkEvent(event);
-    } catch (error) {
-        log.error(`hande worker event -- failed\n${error.stack}`);
-    }
-});
-
-const sendevent: agent.IWorkerEvent = { event: 'STARTED' };
-
-send(sendevent);
-;
+new Worker().run();
