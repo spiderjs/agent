@@ -188,7 +188,9 @@ class Worker {
                 job.result = { code: 'SUCCESS' };
                 this.send({ event: 'JOB_COMPLETED', evtarg: job });
             },
-            data: (d: any) => {
+            log,
+            executor: config,
+            handleData: (d: any) => {
                 this.send({
                     event: 'DATA', evtarg: {
                         content: Buffer.from(JSON.stringify(d)).toString('base64'),
@@ -196,8 +198,6 @@ class Worker {
                     },
                 });
             },
-            log,
-            executor: config,
             horseman: () => {
                 return this.createHorseMan(job);
             },
