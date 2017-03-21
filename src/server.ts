@@ -3,9 +3,10 @@ import agent = require('./agent');
 import exec = require('./executor');
 import assert = require('assert');
 import logger = require('log4js');
-
+import config = require('config');
 const log = logger.getLogger('spiderjs-agent');
 
+// tslint:disable-next-line:ban-types
 function pcall(fun: Function): boolean {
     try {
 
@@ -18,7 +19,7 @@ function pcall(fun: Function): boolean {
 }
 
 export class Server {
-    public perfUpdateInterval: number = 6000;
+    public perfUpdateInterval: number = config.get<number>('heartbeat');
 
     public watchdog: agent.IWatchDog;
     private oid: string;
