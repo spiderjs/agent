@@ -211,6 +211,7 @@ class Worker {
                     },
                 });
             },
+            require,
         });
 
         // load spider handlers

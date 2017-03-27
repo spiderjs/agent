@@ -30,7 +30,8 @@
     "nanotimer": "^0.3.14",
     "node-horseman": "^3.2.0",
     "phantomjs-prebuilt": "^2.1.14",
-    "spiderjs-proto": "^0.0.2",
+    "request": "^2.81.0",
+    "spiderjs-proto": "^0.0.3",
     "typescript-collections": "^1.2.3"
   },
   "devDependencies": {
