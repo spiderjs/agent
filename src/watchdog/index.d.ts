@@ -57,6 +57,8 @@ export class WatchDog {
      */
     onRunJob(job: agent.IJob): void;
 
+    onJobProcess(job: agent.IProcess): void;
+
     /**
      * event listener
      */

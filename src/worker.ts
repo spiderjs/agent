@@ -201,6 +201,18 @@ class Worker {
             horseman: () => {
                 return this.createHorseMan(job);
             },
+            process: (total: number, current: number) => {
+                if (!total) {
+                    total = 1;
+                    current = 1;
+                }
+                if (!current) {
+                    current = 0;
+                }
+                this.send({
+                    event: 'JOB_PROCESS', evtarg: { total, current },
+                });
+            },
             runjob: (executor: string, ctx: any) => {
                 this.send({
                     event: 'RUN_JOB', evtarg: {

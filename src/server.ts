@@ -107,6 +107,10 @@ export class Server {
     public onJobPrepared(job: agent.IJob): void {
         this.watchdog.onJobPrepared(job);
     }
+
+    public onJobProcess(process: agent.IProcess): void {
+        this.watchdog.onJobProcess(process);
+    }
     /**
      * call when job running
      */

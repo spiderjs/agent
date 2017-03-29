@@ -118,6 +118,16 @@ WatchDog.prototype.onJobPrepared = function (job) {
 
 };
 
+WatchDog.prototype.onJobProcess = function (process) {
+
+    this.stream.write({
+        event: 'JOB_PROCESS_DATA',
+        oid: this.oid,
+        process: process
+    });
+
+};
+
 WatchDog.prototype.onJobRunning = function (job) {
 
     this.stream.write({

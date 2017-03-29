@@ -25,6 +25,11 @@ export interface IPerf {
     pending: number;
 }
 
+export interface IProcess {
+    total: number;
+    current: number;
+}
+
 export interface IJob {
     oid?: string;
     rootjob?: string; // parent job oid
@@ -66,12 +71,12 @@ export interface ITest {
 }
 
 export type WorkEvent = 'STARTED' | 'INIT_SUCCESS' | 'INIT_FAILED'
-    | 'JOB_COMPLETED' | 'INIT' | 'RUN_JOB' | 'JOB_RUNNING' | 'UNDEPLOY' | 'DATA';
+    | 'JOB_COMPLETED' | 'INIT' | 'RUN_JOB' | 'JOB_RUNNING' | 'UNDEPLOY' | 'DATA' | 'JOB_PROCESS';
 
 export interface IWorkerEvent {
     event: WorkEvent;
 
-    evtarg?: IExecutor | IJob | IExecutor | IResult | IData;
+    evtarg?: IExecutor | IJob | IExecutor | IResult | IData | IProcess;
 }
 
 export interface IWatchDog {
@@ -132,6 +137,8 @@ export interface IWatchDog {
      * call when spider script call runjob method
      */
     onRunJob(job: IJob): void;
+
+    onJobProcess(process: IProcess): void;
 
     run(): void;
 }

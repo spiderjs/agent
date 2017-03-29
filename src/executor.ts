@@ -202,6 +202,17 @@ export class Executor {
                 break;
             }
 
+            case 'JOB_PROCESS': {
+                const result = event.evtarg as agent.IProcess;
+
+                // tslint:disable-next-line:max-line-length
+                log.debug(`executor[${this.config.oid}] worker[${worker.id}] handled run job process \n${JSON.stringify(result)}`);
+
+                this.server.onJobProcess(result);
+
+                break;
+            }
+
             default:
                 log.error(`unknown event[${event.event}] from executor[${this.config.oid}] worker[${worker.id}]`);
         }
