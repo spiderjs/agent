@@ -24,13 +24,17 @@
   "homepage": "https://github.com/spiderjs/agent#readme",
   "dependencies": {
     "@types/config": "^0.0.32",
+    "@types/levelup": "^0.0.29",
+    "@types/rx": "^4.1.1",
     "config": "^1.25.1",
     "grpc": "^1.1.2",
+    "level": "^1.6.0",
     "log4js": "^1.1.0",
     "nanotimer": "^0.3.14",
     "node-horseman": "^3.2.0",
     "phantomjs-prebuilt": "^2.1.14",
     "request": "^2.81.0",
+    "rx": "^4.1.0",
     "spiderjs-proto": "^0.0.5",
     "typescript-collections": "^1.2.3"
   },

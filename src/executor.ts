@@ -5,6 +5,7 @@ import agent = require('./agent');
 import server = require('./server');
 import child_process = require('child_process');
 import collections = require('typescript-collections');
+import fq = require('./fq');
 
 
 const cwd = path.join(__dirname, '..');
@@ -21,7 +22,7 @@ export class Executor {
 
     private workers = new Map<number, IWorker>();
     /** The pending job */
-    private fifo = new collections.Queue<agent.IJob>();
+    private fifo: fq.IQueue;
 
     private deployed: number = 0;
 
@@ -30,6 +31,8 @@ export class Executor {
         if (!this.config.concurrent || this.config.concurrent === 0) {
             this.config.concurrent = os.cpus().length;
         }
+
+        this.fifo = new fq.LevelQueue(`${this.config.oid}.db`);
     }
 
     public run() {
@@ -49,13 +52,15 @@ export class Executor {
 
     public stop(): void {
 
-        this.fifo.forEach((job: agent.IJob) => {
+        this.fifo.removeall().subscribe((job) => {
             job.result = {
                 code: 'CANCELED',
                 errmsg: `executor[${this.config.oid}] undeployed`,
             };
 
             this.server.onJobCompleted(job);
+        }, (error) => {
+            log.error(error);
         });
 
         for (const worker of this.workers.values()) {
@@ -75,15 +80,24 @@ export class Executor {
 
                 this.server.onJobPrepared(job);
 
+                worker.sleep = false;
+
                 return;
             }
         }
 
-        log.debug(`enqueue job[${job.oid}]`);
+        this.fifo.push(job).subscribe(() => {
+            log.debug(`enqueue job[${job.oid}]`);
+            this.server.onJobPrepared(job);
+        }, (error) => {
 
-        this.fifo.enqueue(job);
+            job.result = {
+                code: 'INNER_ERROR',
+                errmsg: error.toString(),
+            };
 
-        this.server.onJobPrepared(job);
+            this.server.onJobCompleted(job);
+        });
     }
 
     private initWorker(worker: IWorker): void {
@@ -120,13 +134,21 @@ export class Executor {
             }
 
             case 'INIT_SUCCESS': {
-                if (this.fifo.size() === 0) {
-                    worker.sleep = true;
-                } else {
-                    const sendevent: agent.IWorkerEvent = { event: 'RUN_JOB', evtarg: this.fifo.dequeue() };
+
+                this.fifo.pop().map((job) => {
+                    const sendevent: agent.IWorkerEvent = { event: 'RUN_JOB', evtarg: job };
 
                     worker.process.send(sendevent);
-                }
+
+                    return job;
+                }).count().subscribe((num) => {
+                    if (num === 0) {
+                        worker.sleep = true;
+                    }
+                }, (error) => {
+                    worker.sleep = true;
+                    log.error(error);
+                });
 
                 log.info(`executor[${this.config.oid}] worker[${worker.id}] started`);
 
@@ -154,13 +176,20 @@ export class Executor {
 
                 log.debug(`executor[${this.config.oid}] worker[${worker.id}] completed job[${job.oid}]`);
 
-                if (this.fifo.size() === 0) {
-                    worker.sleep = true;
-                } else {
-                    const sendevent: agent.IWorkerEvent = { event: 'RUN_JOB', evtarg: this.fifo.dequeue() };
+                this.fifo.pop().map((job) => {
+                    const sendevent: agent.IWorkerEvent = { event: 'RUN_JOB', evtarg: job };
 
                     worker.process.send(sendevent);
-                }
+
+                    return job;
+                }).count().subscribe((num) => {
+                    if (num === 0) {
+                        worker.sleep = true;
+                    }
+                }, (error) => {
+                    worker.sleep = true;
+                    log.error(error);
+                });
 
                 this.server.onJobCompleted(job);
 
