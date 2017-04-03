@@ -68,6 +68,8 @@ export class Executor {
             const sendevent: agent.IWorkerEvent = { event: 'UNDEPLOY' };
             worker.process.send(sendevent);
         }
+
+        this.fifo.disponse();
     }
 
     public runJob(job: agent.IJob): void {

@@ -13,6 +13,7 @@ export interface IQueue {
     size(): number;
     remove(oid: string): Rx.Observable<api.IJob>;
     removeall(): Rx.Observable<api.IJob>;
+    disponse(): void;
 }
 
 export class LevelQueue implements IQueue {
@@ -26,6 +27,10 @@ export class LevelQueue implements IQueue {
         }
 
         this.db = levelup(dbpath, { valueEncoding: 'json', keyEncoding: 'json' });
+    }
+
+    public disponse(): void {
+        this.db.close();
     }
 
     public push(job: api.IJob): Rx.Observable<number> {
