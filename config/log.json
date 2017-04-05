@@ -1,13 +1,13 @@
 {
-    "appenders": [{
+    "appenders": [
+        {
             "type": "console"
         },
         {
             "type": "dateFile",
             "filename": "logs/spiderjs-agent.log",
             "pattern": "-yyyy-MM-dd",
-            "maxLogSize": 20480,
-            "category": "spiderjs-agent"
+            "maxLogSize": 20480
         },
         {
             "type": "dateFile",
