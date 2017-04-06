@@ -5,7 +5,7 @@ export class WorkerLog {
     constructor(private name: string) { }
 
     public trace(message: string): void {
-        message = `[${name}][${process.pid}] ${message}`;
+        message = `[${this.name}][${process.pid}] ${message}`;
         const entry = {
             event: 'LOG',
             evtarg: {
@@ -19,7 +19,7 @@ export class WorkerLog {
         }
     }
     public debug(message: string): void {
-        message = `[${name}][${process.pid}] ${message}`;
+        message = `[${this.name}][${process.pid}] ${message}`;
         const entry = {
             event: 'LOG',
             evtarg: {
@@ -33,7 +33,7 @@ export class WorkerLog {
         }
     }
     public info(message: string): void {
-        message = `[${name}][${process.pid}] ${message}`;
+        message = `[${this.name}][${process.pid}] ${message}`;
         const entry = {
             event: 'LOG',
             evtarg: {
@@ -47,7 +47,7 @@ export class WorkerLog {
         }
     }
     public warn(message: string): void {
-        message = `[${name}][${process.pid}] ${message}`;
+        message = `[${this.name}][${process.pid}] ${message}`;
         const entry = {
             event: 'LOG',
             evtarg: {
@@ -61,7 +61,7 @@ export class WorkerLog {
         }
     }
     public error(message: string): void {
-        message = `[${name}][${process.pid}] ${message}`;
+        message = `[${this.name}][${process.pid}] ${message}`;
         const entry = {
             event: 'LOG',
             evtarg: {
@@ -75,7 +75,7 @@ export class WorkerLog {
         }
     }
     public fatal(message: string): void {
-        message = `[${name}][${process.pid}] ${message}`;
+        message = `[${this.name}][${process.pid}] ${message}`;
         const entry = {
             event: 'LOG',
             evtarg: {

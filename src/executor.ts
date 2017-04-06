@@ -275,6 +275,8 @@ export class Executor {
                     default:
                         log.info(result.message);
                 }
+
+                break;
             }
 
             default:
