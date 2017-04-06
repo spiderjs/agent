@@ -70,13 +70,18 @@ export interface ITest {
     args: string;
 }
 
+export interface ILogEntry {
+    level: string;
+    message: string;
+};
+
 export type WorkEvent = 'STARTED' | 'INIT_SUCCESS' | 'INIT_FAILED'
-    | 'JOB_COMPLETED' | 'INIT' | 'RUN_JOB' | 'JOB_RUNNING' | 'UNDEPLOY' | 'DATA' | 'JOB_PROCESS';
+    | 'JOB_COMPLETED' | 'INIT' | 'RUN_JOB' | 'JOB_RUNNING' | 'UNDEPLOY' | 'DATA' | 'JOB_PROCESS' | 'LOG';
 
 export interface IWorkerEvent {
     event: WorkEvent;
 
-    evtarg?: IExecutor | IJob | IExecutor | IResult | IData | IProcess;
+    evtarg?: IExecutor | IJob | IExecutor | IResult | IData | IProcess | ILogEntry;
 }
 
 export interface IWatchDog {

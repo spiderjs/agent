@@ -244,6 +244,39 @@ export class Executor {
                 break;
             }
 
+            case 'LOG': {
+                const result = event.evtarg as agent.ILogEntry;
+
+                switch (result.level) {
+                    case 'trace': {
+                        log.trace(result.message);
+                        break;
+                    }
+                    case 'debug': {
+                        log.debug(result.message);
+                        break;
+                    }
+                    case 'info': {
+                        log.info(result.message);
+                        break;
+                    }
+                    case 'warn': {
+                        log.warn(result.message);
+                        break;
+                    }
+                    case 'error': {
+                        log.error(result.message);
+                        break;
+                    }
+                    case 'fatal': {
+                        log.fatal(result.message);
+                        break;
+                    }
+                    default:
+                        log.info(result.message);
+                }
+            }
+
             default:
                 log.error(`unknown event[${event.event}] from executor[${this.config.oid}] worker[${worker.id}]`);
         }

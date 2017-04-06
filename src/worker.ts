@@ -1,23 +1,18 @@
 import path = require('path');
 import agent = require('./agent');
 import process = require('process');
-import logger = require('log4js');
 import vm = require('vm');
 import Horseman = require('./horseman');
 import util = require('util');
 import config = require('config');
+import logger = require('./workerlog');
 
-const log = logger.getLogger(`spiderjs-agent-worker`);
+const log = new logger.WorkerLog('worker');
 
 class Worker {
     private config: agent.IExecutor;
     private script: vm.Script;
     private horseman: Horseman.Horseman;
-
-    constructor() {
-        const configpath = path.join(__dirname, '/../../config/log.json');
-        logger.configure(configpath);
-    }
 
     public run(): void {
         process.on('message', (event: agent.IWorkerEvent) => {
@@ -168,7 +163,7 @@ class Worker {
             }).then(() => {
                 log.debug('run spiderjs script -- success');
             }, (err: Error) => {
-                log.error('horseman error', err.stack);
+                log.error(`horseman error:\n ${err.stack}`);
                 horseman.close();
                 job.result = { code: 'FAILED', errmsg: err.message };
                 this.send({ event: 'JOB_COMPLETED', evtarg: job });
@@ -254,7 +249,7 @@ class Worker {
         });
 
         horseman.on('urlChanged', (msg: any) => {
-            log.debug('url changed: ', msg);
+            log.debug(`url changed: ${msg}`);
         });
 
         return horseman;
