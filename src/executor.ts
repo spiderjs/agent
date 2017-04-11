@@ -11,6 +11,7 @@ import fq = require('./fq');
 const cwd = path.join(__dirname, '..');
 const workerjs = path.join(__dirname, 'worker.js');
 const log = logger.getLogger('spider-agent-executor');
+const workerlog = logger.getLogger('spider-agent-worker');
 
 interface IWorker {
     id: number;
@@ -26,6 +27,8 @@ export class Executor {
 
     private deployed: number = 0;
 
+    private stopped = false;
+
     constructor(private config: agent.IExecutor, private server: server.Server) {
 
         if (!this.config.concurrent || this.config.concurrent === 0) {
@@ -39,18 +42,13 @@ export class Executor {
         log.debug(JSON.stringify(this.config));
         const concurrent = this.config.concurrent as number;
         for (let i = 0; i < concurrent; i++) {
-            log.debug(`start executor[${this.config.oid}] worker(${i}) ...`);
-            const child = child_process.fork(workerjs, undefined, { cwd });
-            log.debug(`start executor[${this.config.oid}] worker(${i}) -- success`);
-            const worker = { id: i, process: child };
-
-            this.workers.set(i, worker);
-
-            this.initWorker(worker);
+            this.createWork(i);
         }
     }
 
     public stop(): void {
+
+        this.stopped = true;
 
         this.fifo.removeall().subscribe((job) => {
             job.result = {
@@ -111,6 +109,11 @@ export class Executor {
             if (this.workers.size === 0) {
                 this.server.onUndeployCompleted(this.config.oid, { code: 'SUCCESS' });
             }
+
+            if (!this.stopped) {
+                log.debug(`try restart executor[${this.config.oid}] worker[${worker.id}] ...`);
+                this.createWork(worker.id);
+            }
         });
 
         worker.process.on('error', (error) => {
@@ -137,13 +140,19 @@ export class Executor {
 
             case 'INIT_SUCCESS': {
 
-                this.fifo.pop().map((job) => {
-                    const sendevent: agent.IWorkerEvent = { event: 'RUN_JOB', evtarg: job };
+                log.debug(`worker(${worker.id}) -- init success`);
+
+                this.fifo.pop().map((newjob) => {
+                    // tslint:disable-next-line:max-line-length
+                    log.debug(`executor[${this.config.oid}] worker[${worker.id},${this.fifo.size()}]  start job(${newjob.oid}) `);
+
+                    const sendevent: agent.IWorkerEvent = { event: 'RUN_JOB', evtarg: newjob };
 
                     worker.process.send(sendevent);
 
-                    return job;
+                    return newjob;
                 }).count().subscribe((num) => {
+                    log.debug(`worker(${worker.id}) pop: ${num}`);
                     if (num === 0) {
                         worker.sleep = true;
                     }
@@ -178,12 +187,14 @@ export class Executor {
 
                 log.debug(`executor[${this.config.oid}] worker[${worker.id}] completed job[${job.oid}]`);
 
-                this.fifo.pop().map((job) => {
-                    const sendevent: agent.IWorkerEvent = { event: 'RUN_JOB', evtarg: job };
+                this.fifo.pop().map((newjob) => {
+                    // tslint:disable-next-line:max-line-length
+                    log.debug(`executor[${this.config.oid}] worker[${worker.id},${this.fifo.size()}]  start job(${newjob.oid}) `);
+                    const sendevent: agent.IWorkerEvent = { event: 'RUN_JOB', evtarg: newjob };
 
                     worker.process.send(sendevent);
 
-                    return job;
+                    return newjob;
                 }).count().subscribe((num) => {
                     if (num === 0) {
                         worker.sleep = true;
@@ -249,31 +260,31 @@ export class Executor {
 
                 switch (result.level) {
                     case 'trace': {
-                        log.trace(result.message);
+                        workerlog.trace(result.message);
                         break;
                     }
                     case 'debug': {
-                        log.debug(result.message);
+                        workerlog.debug(result.message);
                         break;
                     }
                     case 'info': {
-                        log.info(result.message);
+                        workerlog.info(result.message);
                         break;
                     }
                     case 'warn': {
-                        log.warn(result.message);
+                        workerlog.warn(result.message);
                         break;
                     }
                     case 'error': {
-                        log.error(result.message);
+                        workerlog.error(result.message);
                         break;
                     }
                     case 'fatal': {
-                        log.fatal(result.message);
+                        workerlog.fatal(result.message);
                         break;
                     }
                     default:
-                        log.info(result.message);
+                        workerlog.info(result.message);
                 }
 
                 break;
@@ -282,5 +293,16 @@ export class Executor {
             default:
                 log.error(`unknown event[${event.event}] from executor[${this.config.oid}] worker[${worker.id}]`);
         }
+    }
+
+    private createWork(num: number): void {
+        log.debug(`start executor[${this.config.oid}] worker(${num}) ...`);
+        const child = child_process.fork(workerjs, undefined, { cwd });
+        log.debug(`start executor[${this.config.oid}] worker(${num}) -- success`);
+        const worker = { id: num, process: child };
+
+        this.workers.set(num, worker);
+
+        this.initWorker(worker);
     }
 }

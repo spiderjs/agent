@@ -5,20 +5,20 @@
         },
         {
             "type": "dateFile",
-            "filename": "logs/spiderjs-agent.log",
+            "filename": "logs/agent.log",
             "pattern": "-yyyy-MM-dd",
             "maxLogSize": 20480
         },
         {
             "type": "dateFile",
-            "filename": "logs/spider-agent-executor.log",
+            "filename": "logs/executor.log",
             "pattern": "-yyyy-MM-dd",
             "maxLogSize": 20480,
             "category": "spider-agent-executor"
         },
         {
             "type": "dateFile",
-            "filename": "logs/spiderjs-agent-worker.log",
+            "filename": "logs/worker.log",
             "pattern": "-yyyy-MM-dd",
             "maxLogSize": 20480,
             "category": "spiderjs-agent-worker"

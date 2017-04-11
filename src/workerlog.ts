@@ -4,8 +4,8 @@ import api = require('./agent');
 export class WorkerLog {
     constructor(private name: string) { }
 
-    public trace(message: string): void {
-        message = `[${this.name}][${process.pid}] ${message}`;
+    public trace(message: string, ...args: any[]): void {
+        message = `[${this.name}][${process.pid}] ${message} \n${args.join('\n')}`;
         const entry = {
             event: 'LOG',
             evtarg: {
@@ -18,8 +18,8 @@ export class WorkerLog {
             process.send(entry);
         }
     }
-    public debug(message: string): void {
-        message = `[${this.name}][${process.pid}] ${message}`;
+    public debug(message: string, ...args: any[]): void {
+        message = `[${this.name}][${process.pid}] ${message} \n${args.join('\n')}`;
         const entry = {
             event: 'LOG',
             evtarg: {
@@ -32,8 +32,8 @@ export class WorkerLog {
             process.send(entry);
         }
     }
-    public info(message: string): void {
-        message = `[${this.name}][${process.pid}] ${message}`;
+    public info(message: string, ...args: any[]): void {
+        message = `[${this.name}][${process.pid}] ${message}\n${args.join('\n')}`;
         const entry = {
             event: 'LOG',
             evtarg: {
@@ -46,8 +46,8 @@ export class WorkerLog {
             process.send(entry);
         }
     }
-    public warn(message: string): void {
-        message = `[${this.name}][${process.pid}] ${message}`;
+    public warn(message: string, ...args: any[]): void {
+        message = `[${this.name}][${process.pid}] ${message}\n${args.join('\n')}`;
         const entry = {
             event: 'LOG',
             evtarg: {
@@ -60,8 +60,8 @@ export class WorkerLog {
             process.send(entry);
         }
     }
-    public error(message: string): void {
-        message = `[${this.name}][${process.pid}] ${message}`;
+    public error(message: string, ...args: any[]): void {
+        message = `[${this.name}][${process.pid}] ${message}\n${args.join('\n')}`;
         const entry = {
             event: 'LOG',
             evtarg: {
@@ -74,8 +74,8 @@ export class WorkerLog {
             process.send(entry);
         }
     }
-    public fatal(message: string): void {
-        message = `[${this.name}][${process.pid}] ${message}`;
+    public fatal(message: string, ...args: any[]): void {
+        message = `[${this.name}][${process.pid}] ${message}\n${args.join('\n')}`;
         const entry = {
             event: 'LOG',
             evtarg: {

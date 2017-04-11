@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "tsc -p . -w",
-    "agent": "nodemon -e js,ts --watch tools --watch src build/bin/server.js",
+    "start": "nodemon -w build -w config build/bin/server.js",
     "build": "tsc -p ."
   },
   "repository": {
