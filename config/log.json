@@ -21,7 +21,7 @@
             "filename": "logs/worker.log",
             "pattern": "-yyyy-MM-dd",
             "maxLogSize": 20480,
-            "category": "spiderjs-agent-worker"
+            "category": "spider-agent-worker"
         }
     ]
 }
