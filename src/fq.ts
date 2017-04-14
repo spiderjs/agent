@@ -48,25 +48,8 @@ export class LevelQueue implements IQueue {
     }
 
     public pop(): Rx.Observable<api.IJob> {
-        if (this.start === this.end) {
-            return Rx.Observable.empty<api.IJob>();
-        }
         return Rx.Observable.create<api.IJob>((observer) => {
-            this.db.get(this.start, (error, value) => {
-                if (error) {
-                    if (error.notFound) {
-                        this.start++;
-                        this.pop();
-                    } else {
-                        observer.onError(error);
-                    }
-
-                } else {
-                    this.start++;
-                    observer.onNext(value);
-                    observer.onCompleted();
-                }
-            });
+            this.doPop(observer);
         });
     }
 
@@ -122,6 +105,29 @@ export class LevelQueue implements IQueue {
         };
 
         return Rx.Observable.create<api.IJob>(pop);
+    }
+
+    private doPop(observer: Rx.Observer<api.IJob>): void {
+        if (this.start === this.end) {
+            observer.onCompleted();
+            return;
+        }
+
+        this.db.get(this.start, (error, value) => {
+            if (error) {
+                if (error.notFound) {
+                    this.start++;
+                    this.doPop(observer);
+                } else {
+                    observer.onError(error);
+                }
+
+            } else {
+                this.start++;
+                observer.onNext(value);
+                observer.onCompleted();
+            }
+        });
     }
 
     private getAndDel(index: number): Rx.Observable<api.IJob> {
