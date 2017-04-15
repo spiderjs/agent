@@ -62,7 +62,7 @@ export class Executor {
         });
 
         for (const worker of this.workers.values()) {
-            log.debug(`stop executor[${this.config.oid}] worker[${worker.id}] `);
+            log.debug(`stop executor[${this.config.oid}] worker[${worker.process.pid}] `);
             const sendevent: agent.IWorkerEvent = { event: 'UNDEPLOY' };
             worker.process.send(sendevent);
         }
@@ -73,7 +73,7 @@ export class Executor {
     public runJob(job: agent.IJob): void {
         for (const worker of this.workers.values()) {
             if (worker.sleep === true) {
-                log.debug(`send job[${job.oid}] to executor[${this.config.oid}] worker[${worker.id}] `);
+                log.debug(`send job[${job.oid}] to executor[${this.config.oid}] worker[${worker.process.pid}] `);
                 const sendevent: agent.IWorkerEvent = { event: 'RUN_JOB', evtarg: job };
 
                 worker.process.send(sendevent);
@@ -102,7 +102,7 @@ export class Executor {
 
     private initWorker(worker: IWorker): void {
         worker.process.on('exit', (code, signal) => {
-            log.debug(`executor[${this.config.oid}] worker[${worker.id}] exit with code ${code} : ${signal}`);
+            log.debug(`executor[${this.config.oid}] worker[${worker.process.pid}] exit with code ${code} : ${signal}`);
 
             this.workers.delete(worker.id);
 
@@ -111,13 +111,13 @@ export class Executor {
             }
 
             if (!this.stopped) {
-                log.debug(`try restart executor[${this.config.oid}] worker[${worker.id}] ...`);
+                log.debug(`try restart executor[${this.config.oid}] worker[${worker.process.pid}] ...`);
                 this.createWork(worker.id);
             }
         });
 
         worker.process.on('error', (error) => {
-            log.error(`executor[${this.config.oid}] worker[${worker.id}] raise error :${error}`);
+            log.error(`executor[${this.config.oid}] worker[${worker.process.pid}] raise error :${error}`);
         });
 
         worker.process.on('message', (event: agent.IWorkerEvent) => {
@@ -140,11 +140,11 @@ export class Executor {
 
             case 'INIT_SUCCESS': {
 
-                log.debug(`worker(${worker.id}) -- init success`);
+                log.debug(`worker(${worker.process.pid}) -- init success`);
 
                 this.fifo.pop().map((newjob) => {
                     // tslint:disable-next-line:max-line-length
-                    log.debug(`executor[${this.config.oid}] worker[${worker.id},${this.fifo.size()}]  start job(${newjob.oid}) `);
+                    log.debug(`executor[${this.config.oid}] worker[${worker.process.pid},${this.fifo.size()}]  start job(${newjob.oid}) `);
 
                     const sendevent: agent.IWorkerEvent = { event: 'RUN_JOB', evtarg: newjob };
 
@@ -152,7 +152,7 @@ export class Executor {
 
                     return newjob;
                 }).count().subscribe((num) => {
-                    log.debug(`worker(${worker.id}) pop: ${num}`);
+                    log.debug(`worker(${worker.process.pid}) pop: ${num}`);
                     if (num === 0) {
                         worker.sleep = true;
                     }
@@ -161,7 +161,7 @@ export class Executor {
                     log.error(error);
                 });
 
-                log.info(`executor[${this.config.oid}] worker[${worker.id}] started`);
+                log.info(`executor[${this.config.oid}] worker[${worker.process.pid}] started`);
 
                 this.deployed++;
 
@@ -175,7 +175,7 @@ export class Executor {
             case 'JOB_RUNNING': {
                 const job = event.evtarg as agent.IJob;
 
-                log.debug(`executor[${this.config.oid}] worker[${worker.id}] start job[${job.oid}]`);
+                log.debug(`executor[${this.config.oid}] worker[${worker.process.pid}] start job[${job.oid}]`);
 
                 this.server.onJobRunning(job);
 
@@ -185,11 +185,11 @@ export class Executor {
             case 'JOB_COMPLETED': {
                 const job = event.evtarg as agent.IJob;
 
-                log.debug(`executor[${this.config.oid}] worker[${worker.id}] completed job[${job.oid}]`);
+                log.debug(`executor[${this.config.oid}] worker[${worker.process.pid}] completed job[${job.oid}]`);
 
                 this.fifo.pop().map((newjob) => {
                     // tslint:disable-next-line:max-line-length
-                    log.debug(`executor[${this.config.oid}] worker[${worker.id},${this.fifo.size()}]  start job(${newjob.oid}) `);
+                    log.debug(`executor[${this.config.oid}] worker[${worker.process.pid},${this.fifo.size()}]  start job(${newjob.oid}) `);
                     const sendevent: agent.IWorkerEvent = { event: 'RUN_JOB', evtarg: newjob };
 
                     worker.process.send(sendevent);
@@ -197,6 +197,8 @@ export class Executor {
                     return newjob;
                 }).count().subscribe((num) => {
                     if (num === 0) {
+                        // tslint:disable-next-line:max-line-length
+                        log.debug(`executor[${this.config.oid}] worker[${worker.process.pid},${this.fifo.size()}] -- sleep`);
                         worker.sleep = true;
                     }
                 }, (error) => {
@@ -211,7 +213,7 @@ export class Executor {
 
             case 'INIT_FAILED': {
                 const result = event.evtarg as agent.IResult;
-                log.error(`executor[${this.config.oid}] worker[${worker.id}] init -- failed ${result.code}`);
+                log.error(`executor[${this.config.oid}] worker[${worker.process.pid}] init-- failed ${result.code}`);
 
                 this.workers.delete(worker.id);
 
@@ -226,7 +228,7 @@ export class Executor {
                 const result = event.evtarg as agent.IData;
 
                 // tslint:disable-next-line:max-line-length
-                log.debug(`executor[${this.config.oid}] worker[${worker.id}] handled job[${result.job}] data`);
+                log.debug(`executor[${this.config.oid}] worker[${worker.process.pid}] handled job[${result.job}] data`);
 
                 this.server.onData(this.config, result);
 
@@ -237,7 +239,7 @@ export class Executor {
                 const result = event.evtarg as agent.IJob;
 
                 // tslint:disable-next-line:max-line-length
-                log.debug(`executor[${this.config.oid}] worker[${worker.id}] handled run job command \n${JSON.stringify(result.args)}`);
+                log.debug(`executor[${this.config.oid}] worker[${worker.process.pid}] handled run job command \n${JSON.stringify(result.args)}`);
 
                 this.server.onRunJob(result);
 
@@ -248,7 +250,7 @@ export class Executor {
                 const result = event.evtarg as agent.IProcess;
 
                 // tslint:disable-next-line:max-line-length
-                log.debug(`executor[${this.config.oid}] worker[${worker.id}] handled run job process \n${JSON.stringify(result)}`);
+                log.debug(`executor[${this.config.oid}] worker[${worker.process.pid}] handled run job process \n${JSON.stringify(result)}`);
 
                 this.server.onJobProcess(result);
 
@@ -291,14 +293,14 @@ export class Executor {
             }
 
             default:
-                log.error(`unknown event[${event.event}] from executor[${this.config.oid}] worker[${worker.id}]`);
+                log.error(`unknown event[${event.event}] from executor[${this.config.oid}] worker[${worker.process.pid}]`);
         }
     }
 
     private createWork(num: number): void {
         log.debug(`start executor[${this.config.oid}] worker(${num}) ...`);
         const child = child_process.fork(workerjs, undefined, { cwd });
-        log.debug(`start executor[${this.config.oid}] worker(${num}) -- success`);
+        log.debug(`start executor[${this.config.oid}] worker(${num})-- success`);
         const worker = { id: num, process: child };
 
         this.workers.set(num, worker);

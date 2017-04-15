@@ -2,7 +2,7 @@ import process = require('process');
 import api = require('./agent');
 
 export class WorkerLog {
-    constructor(private name: string) { }
+    constructor(public name: string) { }
 
     public trace(message: string, ...args: any[]): void {
         message = `[${this.name}][${process.pid}] ${message} \n${args.join('\n')}`;
