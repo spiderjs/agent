@@ -2123,9 +2123,9 @@ node-emoji@^1.4.1:
   dependencies:
     string.prototype.codepointat "^0.2.0"
 
-node-horseman@^3.2.0:
-  version "3.2.0"
-  resolved "https://registry.npmjs.org/node-horseman/-/node-horseman-3.2.0.tgz#d4f47a0c3202066eee8b0e5b3cdc40d94be631c4"
+node-horseman@^3.3.0:
+  version "3.3.0"
+  resolved "https://registry.yarnpkg.com/node-horseman/-/node-horseman-3.3.0.tgz#86100369437de794f669e0f52fd94cf945981bb2"
   dependencies:
     bluebird "^3.0.1"
     clone "^1.0.2"

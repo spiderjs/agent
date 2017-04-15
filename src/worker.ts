@@ -85,7 +85,7 @@ class Worker {
 
     private runJob(job: agent.IJob): void {
         log.name = `${this.config.oid}:${job.oid}`;
-        log.debug(`executor[${this.config.oid}] run job[${JSON.stringify(job)}] ...`);
+        log.debug(` [${this.config.oid}] run job[${JSON.stringify(job)}] ...`);
 
         this.send({ event: 'JOB_RUNNING', evtarg: job });
 
@@ -251,6 +251,10 @@ class Worker {
 
         horseman.on('urlChanged', (msg: any) => {
             log.debug(`url changed: ${msg}`);
+        });
+
+        horseman.on('error ', (msg: any, trace: any) => {
+            log.debug(`error: ${msg}\n${trace}`);
         });
 
         return horseman;
