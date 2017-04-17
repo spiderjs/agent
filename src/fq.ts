@@ -54,7 +54,7 @@ export class LevelQueue implements IQueue {
     }
 
     public size(): number {
-        return 0;
+        return this.end - this.start;
     }
 
     public remove(oid: string): Rx.Observable<api.IJob> {

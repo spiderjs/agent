@@ -294,6 +294,7 @@ export class Executor {
             }
 
             default:
+                // tslint:disable-next-line:max-line-length
                 log.error(`unknown event[${event.event}] from executor[${this.config.oid}] worker[${worker.process.pid}]`);
         }
     }
