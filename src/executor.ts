@@ -185,7 +185,8 @@ export class Executor {
             case 'JOB_COMPLETED': {
                 const job = event.evtarg as agent.IJob;
 
-                log.debug(`executor[${this.config.oid}] worker[${worker.process.pid}] completed job[${job.oid}]`);
+                // tslint:disable-next-line:max-line-length
+                log.debug(`executor[${this.config.oid}] worker[${worker.process.pid}] completed job[${job.oid}],pending(${this.fifo.size()})`);
 
                 this.fifo.pop().map((newjob) => {
                     // tslint:disable-next-line:max-line-length

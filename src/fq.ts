@@ -20,7 +20,7 @@ export class LevelQueue implements IQueue {
     private db: LevelUp;
     private start = 0;
     private end = 0;
-    constructor(name: string) {
+    constructor(private name: string) {
         const dbpath = path.join(process.cwd(), 'fq', name);
         if (fs.existsSync(dbpath)) {
             this.deleteFolderRecursive(dbpath);
@@ -108,6 +108,7 @@ export class LevelQueue implements IQueue {
     }
 
     private doPop(observer: Rx.Observer<api.IJob>): void {
+        log.debug(`[${this.name}] pop pending job(${this.start},${this.end})`);
         if (this.start === this.end) {
             observer.onCompleted();
             return;
@@ -115,6 +116,7 @@ export class LevelQueue implements IQueue {
 
         this.db.get(this.start, (error, value) => {
             if (error) {
+                log.debug(`[${this.name}] pop pending job(${this.start},${this.end}) -- error`, error);
                 if (error.notFound) {
                     this.start++;
                     this.doPop(observer);
@@ -123,6 +125,7 @@ export class LevelQueue implements IQueue {
                 }
 
             } else {
+                log.debug(`[${this.name}] pop pending job(${this.start},${this.end}) -- success`, value);
                 this.start++;
                 observer.onNext(value);
                 observer.onCompleted();
