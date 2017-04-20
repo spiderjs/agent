@@ -26,7 +26,7 @@ export class LevelQueue implements IQueue {
             this.deleteFolderRecursive(dbpath);
         }
 
-        this.db = levelup(dbpath, { valueEncoding: 'json', keyEncoding: 'json' });
+        this.db = levelup(dbpath, { valueEncoding: 'json' });
     }
 
     public disponse(): void {
@@ -34,15 +34,16 @@ export class LevelQueue implements IQueue {
     }
 
     public push(job: api.IJob): Rx.Observable<number> {
+        const index = this.end;
+        this.end++;
         return Rx.Observable.create<number>((observer) => {
-            this.db.put(`${this.end}`, job, (error) => {
+            this.db.put(`${index}`, job, (error) => {
                 if (error) {
-                    log.error(`[${this.name}] push pending job(${this.start},${this.end}) -- error`, error);
+                    log.error(`[${this.name}] push pending job(${this.start},${index}) -- error`, error);
                     observer.onError(error);
                 } else {
-                    log.info(`[${this.name}] push pending job(${this.start},${this.end}) -- success`);
-                    this.end++;
-                    observer.onNext(this.end);
+                    log.info(`[${this.name}] push pending job(${this.start},${index}) -- success`);
+                    observer.onNext(index);
                     observer.onCompleted();
                 }
             });
@@ -115,20 +116,21 @@ export class LevelQueue implements IQueue {
             observer.onCompleted();
             return;
         }
+        const index = this.start;
+        this.start++;
 
-        this.db.get(`${this.start}`, (error, value) => {
+        this.db.get(`${index}`, (error, value) => {
             if (error) {
-                log.debug(`[${this.name}] pop pending job(${this.start},${this.end}) -- error`, error);
+                log.debug(`[${this.name}] pop pending job(${index},${this.end}) -- error`, error);
                 if (error.notFound) {
-                    this.start++;
+
                     this.doPop(observer);
                 } else {
                     observer.onError(error);
                 }
 
             } else {
-                log.debug(`[${this.name}] pop pending job(${this.start},${this.end}) -- success`, value);
-                this.start++;
+                log.debug(`[${this.name}] pop pending job(${index},${this.end}) -- success`, value);
                 observer.onNext(value);
                 observer.onCompleted();
             }
