@@ -87,7 +87,7 @@ export class Executor {
         }
 
         this.fifo.push(job).subscribe(() => {
-            log.debug(`enqueue job[${job.oid}]`);
+            log.debug(`enqueue job[${job.oid}] ${this.fifo.size()}`);
             this.server.onJobPrepared(job);
         }, (error) => {
 

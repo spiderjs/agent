@@ -35,10 +35,12 @@ export class LevelQueue implements IQueue {
 
     public push(job: api.IJob): Rx.Observable<number> {
         return Rx.Observable.create<number>((observer) => {
-            this.db.put(this.end, job, (error) => {
+            this.db.put(`${this.end}`, job, (error) => {
                 if (error) {
+                    log.error(`[${this.name}] push pending job(${this.start},${this.end}) -- error`, error);
                     observer.onError(error);
                 } else {
+                    log.info(`[${this.name}] push pending job(${this.start},${this.end}) -- success`);
                     this.end++;
                     observer.onNext(this.end);
                     observer.onCompleted();
@@ -114,7 +116,7 @@ export class LevelQueue implements IQueue {
             return;
         }
 
-        this.db.get(this.start, (error, value) => {
+        this.db.get(`${this.start}`, (error, value) => {
             if (error) {
                 log.debug(`[${this.name}] pop pending job(${this.start},${this.end}) -- error`, error);
                 if (error.notFound) {
