@@ -126,7 +126,7 @@ class Worker {
 
         let horseman = this.createHorseMan(job)
             // tslint:disable-next-line:max-line-length
-            .userAgent(`Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36`)
+            // .userAgent(`Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36`)
             .open(handlers.url);
 
         if (handlers.click) {
@@ -220,12 +220,17 @@ class Worker {
                 });
             },
             require,
+            setTimeout,
         });
 
         // load spider handlers
         this.script.runInContext(context);
 
         return context;
+    }
+
+    private getRandomInt(min: number, max: number): number {
+        return Math.floor(Math.random() * (max - min + 1) + min);
     }
 
     private createHorseMan(job: agent.IJob): Horseman.Horseman {
@@ -244,6 +249,8 @@ class Worker {
                 timeout: config.get<number>('timeout'),
             });
         }
+
+        horseman = horseman.viewport(this.getRandomInt(800, 1080), this.getRandomInt(900, 1920));
 
         horseman.on('consoleMessage', (msg: any) => {
             log.debug(msg);

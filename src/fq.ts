@@ -34,16 +34,16 @@ export class LevelQueue implements IQueue {
     }
 
     public push(job: api.IJob): Rx.Observable<number> {
-        const index = this.end;
-        this.end++;
+        const index = this.start;
         return Rx.Observable.create<number>((observer) => {
             this.db.put(`${index}`, job, (error) => {
                 if (error) {
-                    log.error(`[${this.name}] push pending job(${this.start},${index}) -- error`, error);
+                    log.error(`[${this.name}] push pending job(${index},${this.end}) -- error`, error);
                     observer.onError(error);
                 } else {
-                    log.info(`[${this.name}] push pending job(${this.start},${index}) -- success`);
-                    observer.onNext(index);
+                    this.end++;
+                    log.info(`[${this.name}] push pending job(${index},${this.end}) -- success`);
+                    observer.onNext(this.end);
                     observer.onCompleted();
                 }
             });

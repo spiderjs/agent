@@ -71,24 +71,11 @@ export class Executor {
     }
 
     public runJob(job: agent.IJob): void {
-        for (const worker of this.workers.values()) {
-            if (worker.sleep === true) {
-                log.debug(`send job[${job.oid}] to executor[${this.config.oid}] worker[${worker.process.pid}] `);
-                const sendevent: agent.IWorkerEvent = { event: 'RUN_JOB', evtarg: job };
-
-                worker.process.send(sendevent);
-
-                this.server.onJobPrepared(job);
-
-                worker.sleep = false;
-
-                return;
-            }
-        }
 
         this.fifo.push(job).subscribe(() => {
             log.debug(`enqueue job[${job.oid}] ${this.fifo.size()}`);
             this.server.onJobPrepared(job);
+            this.doRunJob();
         }, (error) => {
 
             job.result = {
@@ -98,6 +85,36 @@ export class Executor {
 
             this.server.onJobCompleted(job);
         });
+    }
+
+    private doRunJob() {
+
+        for (const worker of this.workers.values()) {
+            if (worker.sleep === true) {
+                worker.sleep = false;
+                this.fifo.pop().map((newjob) => {
+                    // tslint:disable-next-line:max-line-length
+                    log.debug(`executor[${this.config.oid}] worker[${worker.process.pid},${this.fifo.size()}]  start job(${newjob.oid}) `);
+                    const sendevent: agent.IWorkerEvent = { event: 'RUN_JOB', evtarg: newjob };
+                    worker.process.send(sendevent);
+
+                }).count().subscribe((num) => {
+                    if (num === 0) {
+                        // tslint:disable-next-line:max-line-length
+                        log.debug(`executor[${this.config.oid}] worker[${worker.process.pid},${this.fifo.size()}] -- sleep`);
+                        worker.sleep = true;
+                    }
+                }, (error) => {
+                    worker.sleep = true;
+                    log.error(error);
+                });
+
+                return;
+            }
+        }
+
+
+
     }
 
     private initWorker(worker: IWorker): void {
