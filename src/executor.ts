@@ -6,7 +6,7 @@ import server = require('./server');
 import child_process = require('child_process');
 import collections = require('typescript-collections');
 import fq = require('./fq');
-
+import rx = require('rx');
 
 const cwd = path.join(__dirname, '..');
 const workerjs = path.join(__dirname, 'worker.js');
@@ -72,6 +72,8 @@ export class Executor {
 
     public runJob(job: agent.IJob): void {
 
+        log.debug(`run job ${job.oid}`);
+
         this.fifo.push(job).subscribe(() => {
             log.debug(`enqueue job[${job.oid}] ${this.fifo.size()}`);
             this.server.onJobPrepared(job);
@@ -112,9 +114,6 @@ export class Executor {
                 return;
             }
         }
-
-
-
     }
 
     private initWorker(worker: IWorker): void {
