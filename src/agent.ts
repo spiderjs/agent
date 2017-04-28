@@ -76,12 +76,12 @@ export interface ILogEntry {
 };
 
 export type WorkEvent = 'STARTED' | 'INIT_SUCCESS' | 'INIT_FAILED'
-    | 'JOB_COMPLETED' | 'INIT' | 'RUN_JOB' | 'JOB_RUNNING' | 'UNDEPLOY' | 'DATA' | 'JOB_PROCESS' | 'LOG';
+    | 'JOB_COMPLETED' | 'INIT' | 'RUN_JOB' | 'JOB_RUNNING' | 'UNDEPLOY' | 'DATA' | 'JOB_PROCESS' | 'LOG' | 'PROXY';
 
 export interface IWorkerEvent {
     event: WorkEvent;
 
-    evtarg?: IExecutor | IJob | IExecutor | IResult | IData | IProcess | ILogEntry;
+    evtarg?: IExecutor | IJob | IExecutor | IResult | IData | IProcess | ILogEntry | IProxy;
 }
 
 export interface IWatchDog {

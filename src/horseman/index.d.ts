@@ -12,5 +12,8 @@ export class Horseman {
     public waitForNextPage(): this;
     public click(selector: string): this;
     public waitForSelector(selector: string): this;
+    public wait(ms: number): this;
     public viewport(width: number, height: number): this;
+    public cookies(data?: any[]): this;
+    public reload(): this;
 }

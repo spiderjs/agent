@@ -7,7 +7,9 @@ import child_process = require('child_process');
 import collections = require('typescript-collections');
 import fq = require('./fq');
 import rx = require('rx');
-
+import cs = require('typescript-collections');
+import request = require('request');
+import config = require('config');
 const cwd = path.join(__dirname, '..');
 const workerjs = path.join(__dirname, 'worker.js');
 const log = logger.getLogger('spider-agent-executor');
@@ -28,6 +30,8 @@ export class Executor {
     private deployed: number = 0;
 
     private stopped = false;
+
+    private proxies = new cs.Queue<agent.IProxy>();
 
     constructor(private config: agent.IExecutor, private server: server.Server) {
 
@@ -273,6 +277,10 @@ export class Executor {
 
                 break;
             }
+            case 'PROXY': {
+                this.updateProxy(worker, event.evtarg as agent.IProxy);
+                break;
+            }
 
             case 'LOG': {
                 const result = event.evtarg as agent.ILogEntry;
@@ -324,5 +332,54 @@ export class Executor {
         this.workers.set(num, worker);
 
         this.initWorker(worker);
+    }
+
+    private updateProxy(worker: IWorker, proxy?: agent.IProxy) {
+        log.debug(`proxies cached size ${this.proxies.size()}`);
+        if (this.proxies.isEmpty()) {
+            log.debug(`load proxy from kuaidaili ...`);
+            request({
+                method: 'GET',
+                // tslint:disable-next-line:max-line-length
+                uri: config.get<string>('zhandaye.url'),
+                // qs: config.get<any>('kuaidaili.request'),
+                useQuerystring: true,
+            }, (error, response, body) => {
+                if (error) {
+                    log.error(`GET kuaidaili error`, error);
+                    return;
+                }
+
+                if (response.statusCode !== 200) {
+                    log.error(`GET kuaidaili status code(${response.statusMessage})`);
+                    return;
+                }
+
+                log.debug(body);
+
+                log.debug(`load proxy from kuaidaili -- success`);
+
+                for (const p of (body as string).split('\r\n')) {
+                    log.debug(p);
+                    const nodes = p.split(':');
+                    this.proxies.enqueue({
+                        ip: nodes[0],
+                        passwd: config.has('zhandaye.password') ? config.get<string>('zhandaye.password') : undefined,
+                        port: nodes[1],
+                        type: 'http',
+                        user: config.has('zhandaye.user') ? config.get<string>('zhandaye.user') : undefined,
+                    });
+                }
+            });
+            return;
+        }
+
+        proxy = this.proxies.dequeue();
+
+        log.debug(`pop proxy ${JSON.stringify(proxy)}`);
+
+        const sendevent: agent.IWorkerEvent = { event: 'PROXY', evtarg: proxy };
+
+        worker.process.send(sendevent);
     }
 }

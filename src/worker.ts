@@ -1,3 +1,4 @@
+import fs = require('fs');
 import path = require('path');
 import agent = require('./agent');
 import process = require('process');
@@ -13,6 +14,13 @@ class Worker {
     private config: agent.IExecutor;
     private script: vm.Script;
     private horseman: Horseman.Horseman;
+    private proxy: agent.IProxy;
+    private userAgents: string[];
+    constructor() {
+        const userAgentFile = path.join(process.cwd(), 'config/userAgent.json');
+
+        this.userAgents = JSON.parse(fs.readFileSync(userAgentFile, 'UTF-8'));
+    }
 
     public run(): void {
         process.on('message', (event: agent.IWorkerEvent) => {
@@ -51,6 +59,11 @@ class Worker {
             case 'UNDEPLOY': {
                 log.debug(`executor[${this.config.oid}] undeployed`);
                 process.exit(0);
+                break;
+            }
+
+            case 'PROXY': {
+                this.proxy = event.evtarg as agent.IProxy;
                 break;
             }
 
@@ -125,8 +138,6 @@ class Worker {
         }
 
         let horseman = this.createHorseMan(job)
-            // tslint:disable-next-line:max-line-length
-            // .userAgent(`Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36`)
             .open(handlers.url);
 
         if (handlers.click) {
@@ -219,6 +230,11 @@ class Worker {
                     },
                 });
             },
+            updateProxy: () => {
+                this.send({
+                    event: 'PROXY', evtarg: this.proxy,
+                });
+            },
             require,
             setTimeout,
         });
@@ -235,12 +251,12 @@ class Worker {
 
     private createHorseMan(job: agent.IJob): Horseman.Horseman {
         let horseman: Horseman.Horseman;
-        if (job.proxy) {
+        if (this.proxy) {
             horseman = new Horseman.Horseman({
                 // loadImages: false,
-                proxy: `${job.proxy.ip}:${job.proxy.port}`,
-                proxyAuth: job.proxy.user ? `${job.proxy.user}:${job.proxy.passwd}` : null,
-                proxyType: job.proxy.type,
+                proxy: `${this.proxy.ip}:${this.proxy.port}`,
+                proxyAuth: this.proxy.user ? `${this.proxy.user}:${this.proxy.passwd}` : undefined,
+                proxyType: this.proxy.type,
                 timeout: config.get<number>('timeout'),
             });
         } else {
@@ -250,7 +266,13 @@ class Worker {
             });
         }
 
-        horseman = horseman.viewport(this.getRandomInt(800, 1080), this.getRandomInt(900, 1920));
+        // horseman = horseman.viewport(this.getRandomInt(800, 1080), this.getRandomInt(900, 1920));
+        const userAgent = this.userAgents[this.getRandomInt(0, this.userAgents.length)];
+        // log.debug(`use userAgent:${userAgent}`);
+        // tslint:disable-next-line:max-line-length
+        horseman = horseman.userAgent(userAgent);
+
+        // horseman = horseman.cookies([]);
 
         horseman.on('consoleMessage', (msg: any) => {
             log.debug(msg);

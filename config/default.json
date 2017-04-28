@@ -2,5 +2,18 @@
     "agent": "AG56af360a3b400000",
     "watchdog": "101.37.75.121:1714",
     "timeout": 30000,
-    "heartbeat": 6000
+    "heartbeat": 6000,
+    "kuaidaili": {
+        "request": {
+            "orderid": "929328385987595",
+            "num": 10,
+            "ut": 1,
+            "format": "json"
+        }
+    },
+    "zhandaye": {
+        "url": "http://vip.zdaye.com/?api=201704281532018057&fitter=1&px=2",
+        "user": "201704281532018057",
+        "password": "26898018"
+    }
 }
