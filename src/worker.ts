@@ -237,6 +237,8 @@ class Worker {
             },
             require,
             setTimeout,
+            setInterval,
+            clearInterval,
         });
 
         // load spider handlers
@@ -253,16 +255,16 @@ class Worker {
         let horseman: Horseman.Horseman;
         if (this.proxy) {
             horseman = new Horseman.Horseman({
-                // loadImages: false,
+                ignoreSSLErrors: true,
                 proxy: `${this.proxy.ip}:${this.proxy.port}`,
                 proxyAuth: this.proxy.user ? `${this.proxy.user}:${this.proxy.passwd}` : undefined,
                 proxyType: this.proxy.type,
-                timeout: config.get<number>('timeout'),
+                // timeout: config.get<number>('timeout'),
             });
         } else {
             horseman = new Horseman.Horseman({
-                // loadImages: false,
-                timeout: config.get<number>('timeout'),
+                ignoreSSLErrors: true,
+                // timeout: config.get<number>('timeout'),
             });
         }
 

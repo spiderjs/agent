@@ -1,6 +1,6 @@
 {
-    "agent": "AG56af360a3b400000",
-    "watchdog": "101.37.75.121:1714",
+    "agent": "AG56f31ff80a800000",
+    "watchdog": "106.14.135.7:1714",
     "timeout": 30000,
     "heartbeat": 6000,
     "kuaidaili": {

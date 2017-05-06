@@ -1,27 +1,14 @@
 {
     "appenders": [
         {
-            "type": "console"
-        },
-        {
-            "type": "dateFile",
-            "filename": "logs/agent.log",
-            "pattern": "-yyyy-MM-dd",
-            "maxLogSize": 20480
-        },
-        {
-            "type": "dateFile",
-            "filename": "logs/executor.log",
-            "pattern": "-yyyy-MM-dd",
-            "maxLogSize": 20480,
-            "category": "spider-agent-executor"
-        },
-        {
-            "type": "dateFile",
-            "filename": "logs/worker.log",
-            "pattern": "-yyyy-MM-dd",
-            "maxLogSize": 20480,
-            "category": "spider-agent-worker"
+            "type": "logLevelFilter",
+            "level": "INFO",
+            "appender": {
+                "type": "dateFile",
+                "filename": "logs/agent.log",
+                "pattern": "-yyyy-MM-dd",
+                "maxLogSize": 20480
+            }
         }
     ]
 }

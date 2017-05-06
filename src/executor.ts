@@ -366,7 +366,7 @@ export class Executor {
                         ip: nodes[0],
                         passwd: config.has('zhandaye.password') ? config.get<string>('zhandaye.password') : undefined,
                         port: nodes[1],
-                        type: 'http',
+                        type: 'https',
                         user: config.has('zhandaye.user') ? config.get<string>('zhandaye.user') : undefined,
                     });
                 }
