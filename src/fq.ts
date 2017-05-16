@@ -45,7 +45,6 @@ export class LevelQueue implements IQueue {
 
     public push(job: api.IJob): Rx.Observable<number> {
         const index = this.end;
-        this.end++;
         log.debug(`[${this.name}] push pending job(${this.start},${index})`);
         return Rx.Observable.create<number>((observer) => {
             this.db.put(`${index}`, job, (error) => {
@@ -53,6 +52,7 @@ export class LevelQueue implements IQueue {
                     log.error(`[${this.name}] push pending job(${this.start},${index}) -- error`, error);
                     observer.onError(error);
                 } else {
+                    this.end++;
                     log.info(`[${this.name}] push pending job(${this.start},${index}) -- success`);
                     observer.onNext(index);
                     observer.onCompleted();
