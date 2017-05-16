@@ -4,8 +4,7 @@
   "description": "the spiderjs worker node agent program",
   "main": "index.js",
   "scripts": {
-    "dev": "tsc -p . -w",
-    "start": "nodemon -w build -w config build/bin/server.js",
+    "dev": "nodemon -w src -w config -e ts,js,json --exec \"tsc -p . & node build/bin/server.js \" ",
     "build": "tsc -p ."
   },
   "repository": {

@@ -14,6 +14,8 @@ export interface IQueue {
     remove(oid: string): Rx.Observable<api.IJob>;
     removeall(): Rx.Observable<api.IJob>;
     disponse(): void;
+    startindex(): number;
+    endindex(): number;
 }
 
 export class LevelQueue implements IQueue {
@@ -22,11 +24,19 @@ export class LevelQueue implements IQueue {
     private end = 0;
     constructor(private name: string) {
         const dbpath = path.join(process.cwd(), 'fq', name);
-        if (fs.existsSync(dbpath)) {
-            this.deleteFolderRecursive(dbpath);
-        }
+        // if (fs.existsSync(dbpath)) {
+        //     this.deleteFolderRecursive(dbpath);
+        // }
 
         this.db = levelup(dbpath, { valueEncoding: 'json' });
+    }
+
+    public startindex(): number {
+        return this.start;
+    }
+
+    public endindex(): number {
+        return this.end;
     }
 
     public disponse(): void {

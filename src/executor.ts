@@ -9,7 +9,7 @@ import fq = require('./fq');
 import rx = require('rx');
 import cs = require('typescript-collections');
 import request = require('request');
-import config = require('config');
+import appconfig = require('config');
 const cwd = path.join(__dirname, '..');
 const workerjs = path.join(__dirname, 'worker.js');
 const log = logger.getLogger('spider-agent-executor');
@@ -40,6 +40,10 @@ export class Executor {
         }
 
         this.fifo = new fq.LevelQueue(`${this.config.oid}.db`);
+
+        setInterval(() => {
+            this.logProfile();
+        }, appconfig.get<number>('sample'));
     }
 
     public run() {
@@ -91,6 +95,10 @@ export class Executor {
 
             this.server.onJobCompleted(job);
         });
+    }
+
+    private logProfile() {
+        log.info(`[${this.config.oid}] fq(${this.fifo.startindex()}, ${this.fifo.endindex()})`);
     }
 
     private doRunJob() {
@@ -341,7 +349,7 @@ export class Executor {
             request({
                 method: 'GET',
                 // tslint:disable-next-line:max-line-length
-                uri: config.get<string>('zhandaye.url'),
+                uri: appconfig.get<string>('zhandaye.url'),
                 // qs: config.get<any>('kuaidaili.request'),
                 useQuerystring: true,
             }, (error, response, body) => {
@@ -364,10 +372,11 @@ export class Executor {
                     const nodes = p.split(':');
                     this.proxies.enqueue({
                         ip: nodes[0],
-                        passwd: config.has('zhandaye.password') ? config.get<string>('zhandaye.password') : undefined,
+                        // tslint:disable-next-line:max-line-length
+                        passwd: appconfig.has('zhandaye.password') ? appconfig.get<string>('zhandaye.password') : undefined,
                         port: nodes[1],
                         type: 'https',
-                        user: config.has('zhandaye.user') ? config.get<string>('zhandaye.user') : undefined,
+                        user: appconfig.has('zhandaye.user') ? appconfig.get<string>('zhandaye.user') : undefined,
                     });
                 }
             });
