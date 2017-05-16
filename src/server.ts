@@ -201,6 +201,8 @@ export class Server {
         } else {
             executor.runJob(job);
         }
+
+        this.updatePerf();
     }
 
     private runTest(test: agent.ITest): void {
@@ -227,6 +229,8 @@ export class Server {
         this.perf.pending++;
 
         executor.runJob(job);
+
+        this.updatePerf();
     }
 
 }
