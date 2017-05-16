@@ -2,7 +2,7 @@
     "agent": "AG56f31ff80a800000",
     "watchdog": "106.14.135.7:1714",
     "timeout": 30000,
-    "heartbeat": 6000,
+    "heartbeat": 60000,
     "sample": 60000,
     "kuaidaili": {
         "request": {

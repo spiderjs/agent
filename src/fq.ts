@@ -5,6 +5,7 @@ import path = require('path');
 import fs = require('fs');
 import Rx = require('rx');
 import logger = require('log4js');
+import config = require('config');
 const log = logger.getLogger('spider-agent-fq');
 
 export interface IQueue {
@@ -29,6 +30,12 @@ export class LevelQueue implements IQueue {
         // }
 
         this.db = levelup(dbpath, { valueEncoding: 'json' });
+
+        this.getIndex(() => {
+            setInterval(() => {
+                this.saveIndex();
+            }, config.get<number>('heartbeat'));
+        });
     }
 
     public startindex(): number {
@@ -119,6 +126,33 @@ export class LevelQueue implements IQueue {
         };
 
         return Rx.Observable.create<api.IJob>(pop);
+    }
+
+    private saveIndex() {
+        log.info(`[${this.name}] save fq index(${this.start}, ${this.end}) ...`);
+        this.db.put(`__fq_index`, { start: this.start, end: this.end }, (error) => {
+            if (error) {
+                log.error(`[${this.name}] save fq index -- failed`, error);
+            } else {
+                log.info(`[${this.name}] save fq index -- success`);
+            }
+        });
+    }
+
+    private getIndex(callback: any) {
+        log.info(`[${this.name}] load fq index ...`);
+        this.db.get(`__fq_index`, (error, value) => {
+            if (error) {
+                log.error(`[${this.name}] load fq index -- failed`, error);
+            } else {
+                this.start = value.start;
+                this.end = value.end;
+
+                log.info(`[${this.name}] load fq index -- success(${this.start}, ${this.end})`);
+            }
+
+            callback();
+        });
     }
 
     private doPop(observer: Rx.Observer<api.IJob>): void {
