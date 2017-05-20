@@ -33,6 +33,8 @@ export class Executor {
 
     private proxies = new cs.Queue<agent.IProxy>();
 
+    private timer: any;
+
     constructor(private config: agent.IExecutor, private server: server.Server) {
 
         if (!this.config.concurrent || this.config.concurrent === 0) {
@@ -41,7 +43,7 @@ export class Executor {
 
         this.fifo = new fq.LevelQueue(`${this.config.oid}.db`);
 
-        setInterval(() => {
+        this.timer = setInterval(() => {
             this.logProfile();
         }, appconfig.get<number>('sample'));
     }
@@ -76,6 +78,8 @@ export class Executor {
         }
 
         this.fifo.disponse();
+
+        clearInterval(this.timer);
     }
 
     public runJob(job: agent.IJob): void {

@@ -23,6 +23,7 @@ export class LevelQueue implements IQueue {
     private db: LevelUp;
     private start = 0;
     private end = 0;
+    private timer: any;
     constructor(private name: string) {
         const dbpath = path.join(process.cwd(), 'fq', name);
         // if (fs.existsSync(dbpath)) {
@@ -32,7 +33,7 @@ export class LevelQueue implements IQueue {
         this.db = levelup(dbpath, { valueEncoding: 'json' });
 
         this.getIndex(() => {
-            setInterval(() => {
+            this.timer = setInterval(() => {
                 this.saveIndex();
             }, config.get<number>('heartbeat'));
         });
@@ -48,6 +49,7 @@ export class LevelQueue implements IQueue {
 
     public disponse(): void {
         this.db.close();
+        clearInterval(this.timer);
     }
 
     public push(job: api.IJob): Rx.Observable<number> {
