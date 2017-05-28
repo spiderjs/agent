@@ -23,6 +23,7 @@ export class LevelQueue implements IQueue {
     private db: LevelUp;
     private start = 0;
     private end = 0;
+    private write = 0;
     private timer: any;
     constructor(private name: string) {
         const dbpath = path.join(process.cwd(), 'fq', name);
@@ -53,15 +54,16 @@ export class LevelQueue implements IQueue {
     }
 
     public push(job: api.IJob): Rx.Observable<number> {
-        const index = this.end;
+        const index = this.write;
+        this.write++;
         log.debug(`[${this.name}] push pending job(${this.start},${index})`);
         return Rx.Observable.create<number>((observer) => {
             this.db.put(`${index}`, job, (error) => {
+                this.end++;
                 if (error) {
                     log.error(`[${this.name}] push pending job(${this.start},${index}) -- error`, error);
                     observer.onError(error);
                 } else {
-                    this.end++;
                     log.info(`[${this.name}] push pending job(${this.start},${index}) -- success`);
                     observer.onNext(index);
                     observer.onCompleted();
@@ -149,6 +151,7 @@ export class LevelQueue implements IQueue {
             } else {
                 this.start = value.start;
                 this.end = value.end;
+                this.write = value.end;
 
                 log.info(`[${this.name}] load fq index -- success(${this.start}, ${this.end})`);
             }
@@ -158,8 +161,8 @@ export class LevelQueue implements IQueue {
     }
 
     private doPop(observer: Rx.Observer<api.IJob>): void {
-        log.debug(`[${this.name}] pop pending job(${this.start},${this.end})`);
-        if (this.start === this.end) {
+        log.info(`[${this.name}] pop pending job(${this.start},${this.end})`);
+        if (this.start >= this.end) {
             observer.onCompleted();
             return;
         }
@@ -168,7 +171,7 @@ export class LevelQueue implements IQueue {
 
         this.db.get(`${index}`, (error, value) => {
             if (error) {
-                log.debug(`[${this.name}] pop pending job(${index},${this.end}) -- error`, error);
+                log.error(`[${this.name}] pop pending job(${index},${this.end}) -- error`, error);
                 if (error.notFound) {
 
                     this.doPop(observer);
@@ -177,7 +180,7 @@ export class LevelQueue implements IQueue {
                 }
 
             } else {
-                log.debug(`[${this.name}] pop pending job(${index},${this.end}) -- success`, value);
+                log.info(`[${this.name}] pop pending job(${index},${this.end}) -- success`, value);
                 observer.onNext(value);
                 observer.onCompleted();
             }
