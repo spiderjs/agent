@@ -1,3 +1,4 @@
+import zlib = require('zlib');
 import fs = require('fs');
 import path = require('path');
 import agent = require('./agent');
@@ -186,7 +187,7 @@ class Worker {
         let args: any;
 
         if (job.args) {
-            args = JSON.parse(job.args);
+            args = JSON.parse(zlib.gunzipSync(Buffer.from(job.args, 'base64')).toString());
         }
 
         const context = vm.createContext({
@@ -221,10 +222,15 @@ class Worker {
                 });
             },
             runjob: (executor: string, ctx: any) => {
+
+                if (ctx) {
+                    ctx = zlib.gzipSync(Buffer.from(JSON.stringify(ctx))).toString('base64');
+                }
+
                 this.send({
                     event: 'RUN_JOB', evtarg: {
                         executor,
-                        args: context ? JSON.stringify(ctx) : undefined,
+                        args: ctx,
                         parentjob: job.oid,
                         rootjob: job.rootjob ? job.rootjob : job.oid,
                     },

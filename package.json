@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon -w src -w config -e ts,js,json --exec \"tsc -p . & node build/bin/server.js \" ",
-    "build": "tsc -p ."
+    "build": "tsc -p .",
+    "upload": "nodemon -w src -w config -e ts,js,json --exec \"tsc -p . & node build/bin/upload.js \" "
   },
   "repository": {
     "type": "git",
