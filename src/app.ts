@@ -5,7 +5,7 @@ import guice = require('guice.js');
 import apihandler = require('apihandler');
 import nrpc = require('nrpc');
 import api = require('./api');
-
+log4js.configure('./config/log.json');
 const logger = log4js.getLogger('spiderjs');
 
 export class App {
