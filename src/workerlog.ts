@@ -1,16 +1,15 @@
 import process = require('process');
-import api = require('./agent');
 
 export class WorkerLog {
     constructor(public name: string) { }
 
-    public trace(message: string, ...args: any[]): void {
-        message = `[${this.name}][${process.pid}] ${message} \n${args.join('\n')}`;
+    public trace(content: string, ...args: any[]): void {
+        content = `[${process.pid}] ${content} \n${args.join('\n')}`;
         const entry = {
             event: 'LOG',
-            evtarg: {
-                message,
+            arg: {
                 level: 'trace',
+                content,
             },
         };
 
@@ -18,13 +17,13 @@ export class WorkerLog {
             process.send(entry);
         }
     }
-    public debug(message: string, ...args: any[]): void {
-        message = `[${this.name}][${process.pid}] ${message} \n${args.join('\n')}`;
+    public debug(content: string, ...args: any[]): void {
+        content = `[${process.pid}] ${content} \n${args.join('\n')}`;
         const entry = {
             event: 'LOG',
-            evtarg: {
-                message,
+            arg: {
                 level: 'debug',
+                content,
             },
         };
 
@@ -32,13 +31,13 @@ export class WorkerLog {
             process.send(entry);
         }
     }
-    public info(message: string, ...args: any[]): void {
-        message = `[${this.name}][${process.pid}] ${message}\n${args.join('\n')}`;
+    public info(content: string, ...args: any[]): void {
+        content = `[${process.pid}] ${content}\n${args.join('\n')}`;
         const entry = {
             event: 'LOG',
-            evtarg: {
-                message,
+            arg: {
                 level: 'info',
+                content,
             },
         };
 
@@ -46,13 +45,13 @@ export class WorkerLog {
             process.send(entry);
         }
     }
-    public warn(message: string, ...args: any[]): void {
-        message = `[${this.name}][${process.pid}] ${message}\n${args.join('\n')}`;
+    public warn(content: string, ...args: any[]): void {
+        content = `[${process.pid}] ${content}\n${args.join('\n')}`;
         const entry = {
             event: 'LOG',
-            evtarg: {
-                message,
+            arg: {
                 level: 'warn',
+                content,
             },
         };
 
@@ -60,13 +59,13 @@ export class WorkerLog {
             process.send(entry);
         }
     }
-    public error(message: string, ...args: any[]): void {
-        message = `[${this.name}][${process.pid}] ${message}\n${args.join('\n')}`;
+    public error(content: string, ...args: any[]): void {
+        content = `[${process.pid}] ${content}\n${args.join('\n')}`;
         const entry = {
             event: 'LOG',
-            evtarg: {
-                message,
+            arg: {
                 level: 'error',
+                content,
             },
         };
 
@@ -74,13 +73,13 @@ export class WorkerLog {
             process.send(entry);
         }
     }
-    public fatal(message: string, ...args: any[]): void {
-        message = `[${this.name}][${process.pid}] ${message}\n${args.join('\n')}`;
+    public fatal(content: string, ...args: any[]): void {
+        content = `[${process.pid}] ${content}\n${args.join('\n')}`;
         const entry = {
             event: 'LOG',
-            evtarg: {
-                message,
+            arg: {
                 level: 'fatal',
+                content,
             },
         };
 

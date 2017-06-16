@@ -1,149 +1,68 @@
-import events = require('events');
+import rx = require('rx');
+import nrpc = require('nrpc');
+import guice = require('guice.js');
+import log4js = require('log4js');
+import crypto = require('crypto');
+import config = require('config');
+import { IAgent, ICall, IExecutor, IExecutorService, IWatchDog } from './api';
 
-export interface IResult {
-    code: string;
-    errmsg?: string;
-}
+const logger = log4js.getLogger('agent');
 
-// tslint:disable-next-line:interface-name
-export interface DataHandler {
-    oid?: string;
-    name?: string;
-    vendor: string;
-    locked?: boolean;
-    url: string;
-    signKey: string;
-}
+export default class AgentService implements IAgent {
+    public oid: string;
+    public executors = new Map<string, IExecutorService>();
 
-/**
- * The performance counter data
- */
-export interface IPerf {
-    agent: string;
-    executors: string[];
-    jobs: number;
-    pending: number;
-}
+    public createExecutor(executor: IExecutor): rx.Observable<{}> {
 
-export interface IProcess {
-    total: number;
-    current: number;
-}
+        if (!this.executors.has(executor.oid)) {
 
-export interface IJob {
-    oid?: string;
-    rootjob?: string; // parent job oid
-    parentjob?: string;
-    proxy?: IProxy;
-    executor: string;
-    args?: string;
-    result?: IResult;
-}
+            logger.info(`deploy executor[${executor.oid}] ...`);
 
-export interface IProxy {
-    oid?: string;
-    ip: string;
-    port: string;
-    type: string;
-    user?: string;
-    passwd?: string;
-}
+            const executorService = guice.injector.get<IExecutorService>('executor');
 
-export interface IData {
-    job: string;
-    content: string;
-}
+            return executorService
+                .setup(executor)
+                .map((c) => {
+                    this.executors.set(executor.oid, executorService);
 
-export interface IExecutor {
-    oid: string;
-    agent?: string;
-    script: string;
-    dataHandler?: DataHandler;
-    concurrent?: number;
-}
+                    logger.info(`deploy executor[${executor.oid}] -- success`);
+                    return c;
+                });
+        } else {
+            logger.warn(`deploy executor[${executor.oid}] -- skip exists`);
+        }
 
-export interface ITest {
-    oid?: string;
-    agents: string[];
-    script: string;
-    dataHandler?: DataHandler;
-    args: string;
-}
+        return rx.Observable.just({});
+    }
 
-export interface ILogEntry {
-    level: string;
-    message: string;
-};
+    public deleteExecutor(oid: string): rx.Observable<{}> {
 
-export type WorkEvent = 'STARTED' | 'INIT_SUCCESS' | 'INIT_FAILED'
-    | 'JOB_COMPLETED' | 'INIT' | 'RUN_JOB' | 'JOB_RUNNING' | 'UNDEPLOY' | 'DATA' | 'JOB_PROCESS' | 'LOG' | 'PROXY';
+        logger.info(`undeploy executor[${oid}] ...`);
 
-export interface IWorkerEvent {
-    event: WorkEvent;
+        const service = this.executors.get(oid);
 
-    evtarg?: IExecutor | IJob | IExecutor | IResult | IData | IProcess | ILogEntry | IProxy;
-}
+        if (service) {
+            logger.info(`undeploy executor[${oid}] -- found deployed`);
+            return service
+                .shutdown()
+                .map((c) => {
+                    logger.info(`undeploy executor[${oid}] -- success`);
+                    this.executors.delete(oid);
+                    return c;
+                });
+        }
 
-export interface IWatchDog {
-    /**
-     * call when executor is deploying
-     */
-    onDeploying(oid: string): void;
-    /**
-     * call when executor deploy completed
-     */
-    onDeployCompleted(oid: string, result: IResult): void;
+        return rx.Observable.just({});
+    }
 
-    /**
-     * call when executor is undeploying
-     */
-    onUndeploying(oid: string): void;
+    public call(call: ICall): rx.Observable<number> {
+        const executor = this.executors.get(call.executor);
 
-    /**
-     * call when executor is undeploy completed
-     */
-    onUndeployingCompleted(oid: string, result: IResult): void;
+        if (!executor) {
+            logger.warn(`can't find executor[${call.executor}]`, this.executors.keys());
+            return rx.Observable.just(-2);
+        }
 
-    /**
-     * call when agent update perf counter data
-     */
-    onUpdatePerf(perf: IPerf): void;
-
-    /**
-     * call when agent started
-     * @param oid The agent oid
-     */
-    onStarted(oid: string): void;
-
-    /**
-     * call when job completed
-     */
-    onJobCompleted(job: IJob): void;
-    /**
-     * call when job prepared
-     */
-    onJobPrepared(job: IJob): void;
-    /**
-     * call when job running
-     */
-    onJobRunning(job: IJob): void;
-    /**
-     * event listener
-     */
-    // tslint:disable-next-line:ban-types
-    on(event: string | symbol, listener: Function): this;
-
-    /**
-     * call when spider data prepared
-     */
-    onData(data: IData): void;
-
-    /**
-     * call when spider script call runjob method
-     */
-    onRunJob(job: IJob): void;
-
-    onJobProcess(process: IProcess): void;
-
-    run(): void;
+        return executor.exec(call);
+    }
 }

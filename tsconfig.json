@@ -9,15 +9,16 @@
         "experimentalDecorators": true,
         "emitDecoratorMetadata": true,
         "strictNullChecks": true,
-        "outDir": "build",
+        "outDir": "dist",
         "rootDir": ".",
         "moduleResolution": "node"
+        // "watch": true
     },
     "include": [
         "src/**/*",
         "bin/**/*"
     ],
     "exclude": [
-        "node_modules", "build"
+        "node_modules"
     ]
 }

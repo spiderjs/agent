@@ -1,0 +1,40 @@
+{
+    "modules": {
+        "agent": {
+            "singleton": true,
+            "module": "./src/agent"
+        },
+        "watchdog": {
+            "singleton": true,
+            "module": "./src/watchdog",
+            "inject": [
+                "agent",
+                "mqtt"
+            ]
+        },
+        "auth": {
+            "singleton": true,
+            "module": "./src/auth"
+        },
+        "executor": {
+            "singleton": false,
+            "module": "./src/executor",
+            "inject": [
+                "watchdog",
+                "dispatcher"
+            ]
+        },
+        "dispatcher": {
+            "singleton": true,
+            "module": "./src/dispatcher",
+            "inject": [
+                "watchdog",
+                "mqtt"
+            ]
+        },
+        "mqtt": {
+            "singleton": true,
+            "module": "./src/mqtt"
+        }
+    }
+}

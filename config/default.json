@@ -1,20 +1,19 @@
 {
-    "agent": "AG56f31ff80a800000",
-    "watchdog": "106.14.135.7:1714",
-    "timeout": 30000,
-    "heartbeat": 60000,
-    "sample": 60000,
-    "kuaidaili": {
-        "request": {
-            "orderid": "929328385987595",
-            "num": 10,
-            "ut": 1,
-            "format": "json"
-        }
+    "engine": "localhost:1714",
+    "accesskey": {
+        "oid": "AK5726c4fcda420001",
+        "key": "5984e9e7c36d5b530f15eb65caf3d645"
     },
-    "zhandaye": {
-        "url": "http://vip.zdaye.com/?api=201704281532018057&fitter=1&px=2",
-        "user": "201704281532018057",
-        "password": "26898018"
+    "workers": 5,
+    "keepalive": 5,
+    "mqtt": {
+        "accessKey": "LTAI5ljEkY4Uzbfh",
+        "secretKey": "Zhit1SPQAI2z1d9WbWzkKJBYYMZ7cy",
+        "groupId": "GID_SPIDERJS_DATA_STREAM",
+        "topic": "SPIDERJS_DATA_STREAM",
+        "url": "mqtt://mqf-vtgame58y1.mqtt.aliyuncs.com:1883"
+    },
+    "fq": {
+        "flush": 5
     }
 }

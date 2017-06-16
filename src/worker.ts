@@ -1,254 +1,295 @@
-import zlib = require('zlib');
+import rx = require('rx');
+import vm = require('vm');
 import fs = require('fs');
 import path = require('path');
-import agent = require('./agent');
-import process = require('process');
-import vm = require('vm');
-import Horseman = require('./horseman');
+import zlib = require('zlib');
 import util = require('util');
 import config = require('config');
-import logger = require('./workerlog');
+import process = require('process');
+import workerlog = require('./workerlog');
+import horseman = require('./horseman');
 
-const log = new logger.WorkerLog('worker');
+import {
+    IAgent, ICall, IData, IDispacher, IExecuteContext, ILambda, ILogEntry,
+    IResult, IWatchDog, IWorker, IWorkerEvent,
+} from './api';
+
+const logger = new workerlog.WorkerLog('worker');
 
 class Worker {
-    private config: agent.IExecutor;
-    private script: vm.Script;
-    private horseman: Horseman.Horseman;
-    private proxy: agent.IProxy;
     private userAgents: string[];
     constructor() {
+        process.on('message', (event: IWorkerEvent) => {
+            try {
+                this.onEvent(event);
+            } catch (error) {
+                logger.error(`hande worker event -- failed\n${error.stack}`);
+            }
+        });
+
+        this.send({
+            event: 'STARTED',
+        });
+
         const userAgentFile = path.join(process.cwd(), 'config/userAgent.json');
 
         this.userAgents = JSON.parse(fs.readFileSync(userAgentFile, 'UTF-8'));
     }
 
-    public run(): void {
-        process.on('message', (event: agent.IWorkerEvent) => {
-            try {
-                this.onEvent(event);
-            } catch (error) {
-                log.error(`hande worker event -- failed\n${error.stack}`);
+    private send(event: IWorkerEvent): void {
+        if (process.send) {
+            process.send(event);
+        }
+    }
+
+    private rxsend(topob: rx.Observer<IResult>, call: ICall, event: IWorkerEvent): rx.Observable<{}> {
+
+        return rx.Observable.create((ob) => {
+            if (process.send) {
+                process.send(event, (error: any) => {
+                    if (error) {
+                        ob.onError(error);
+                    } else {
+                        try {
+                            ob.onNext(true);
+                            ob.onCompleted();
+                        } catch (error) {
+                            const result: IResult = {
+                                code: `LAMBDA_EXCEPTION`,
+                                executor: call.executor,
+                                errmsg: error.toString(),
+                                oid: call.oid,
+                                task: call.task,
+                                timestamp: new Date().toISOString(),
+                            };
+
+                            topob.onNext(result);
+                            topob.onCompleted();
+                        }
+
+                    }
+                });
+            } else {
+                ob.onError(`broken pipe`);
             }
         });
 
-        const sendevent: agent.IWorkerEvent = { event: 'STARTED' };
-
-        this.send(sendevent);
     }
 
-    private send(message: any): void {
-        if (process.send) {
-            process.send(message);
-        }
-    }
-
-    private onEvent(event: agent.IWorkerEvent): void {
+    private onEvent(event: IWorkerEvent): void {
         switch (event.event) {
-            case 'INIT': {
-
-                this.onInit(event);
-
+            case 'EXEC': {
+                this.onExec(event.arg as IExecuteContext);
                 break;
             }
-
-            case 'RUN_JOB': {
-                this.runJob(event.evtarg as agent.IJob);
-                break;
-            }
-
-            case 'UNDEPLOY': {
-                log.debug(`executor[${this.config.oid}] undeployed`);
-                process.exit(0);
-                break;
-            }
-
-            case 'PROXY': {
-                this.proxy = event.evtarg as agent.IProxy;
-                break;
-            }
-
             default:
-                log.error(`unknown event[${event.event}]`);
+                logger.error(`unknown event[${event.event}]`);
         }
     }
 
-    private onInit(event: agent.IWorkerEvent): void {
-        this.config = event.evtarg as agent.IExecutor;
+    // tslint:disable-next-line:no-empty
+    private onExec(context: IExecuteContext) {
+        const name = `${context.call.app}|${context.call.executor}|${context.call.lambda}`;
+        logger.debug(`start exec ${name} ...`);
 
-        try {
-            this.script = new vm.Script(
-                Buffer.from(this.config.script, 'base64').toString(),
-                {
-                    filename: this.config.oid,
-                },
-            );
-            const sendevent: agent.IWorkerEvent = { event: 'INIT_SUCCESS' };
-            this.send(sendevent);
-        } catch (error) {
-            log.error(`init executor[${this.config.oid}] worker -- failed\n${error.stack}`);
-
-            const sendevent: agent.IWorkerEvent = {
-                event: 'INIT_FAILED',
-                evtarg: { code: 'SCRIPT_EXCEPTION', errmsg: error.toString() },
-            };
-
-            this.send(sendevent);
-        }
-    }
-
-    private runJob(job: agent.IJob): void {
-        log.name = `${this.config.oid}:${job.oid}`;
-        log.debug(` [${this.config.oid}] run job[${JSON.stringify(job)}] ...`);
-
-        this.send({ event: 'JOB_RUNNING', evtarg: job });
-
-        try {
-            const handlers = this.createContext(job);
-
-            if (handlers.rawHandler) {
-                handlers.rawHandler();
-                return;
-            }
-
-            this.handle(job, handlers);
-
-        } catch (error) {
-            log.error(`executor[${this.config.oid}] run job[${job.oid}] -- failed\n\t${error.stack}`);
-
-            job.result = {
-                code: 'SCRIPT_EXCEPTION',
-                errmsg: error.toString(),
-            };
-
-            this.send({ event: 'JOB_COMPLETED', evtarg: job });
-        }
-    }
-
-    private handle(job: agent.IJob, handlers: any): void {
-        if (!handlers.pageHandler) {
-            job.result = { code: 'FAILED', errmsg: 'expect pageHandler' };
-            this.send({ event: 'JOB_COMPLETED', evtarg: job });
-            return;
-        }
-
-        if (!handlers.url) {
-            job.result = { code: 'FAILED', errmsg: 'expect url' };
-            this.send({ event: 'JOB_COMPLETED', evtarg: job });
-            return;
-        }
-
-        let horseman = this.createHorseMan(job)
-            .open(handlers.url);
-
-        if (handlers.click) {
-            horseman = horseman.click(handlers.click);
-        }
-
-        if (handlers.waitfor) {
-            log.debug(`waitForSelector :${handlers.waitfor}`);
-            horseman = horseman.waitForSelector(handlers.waitfor);
-        }
-
-        if (handlers.screenshot) {
-            horseman = horseman.screenshot(handlers.screenshot);
-        }
-
-        //
-        horseman
-            .evaluate(handlers.pageHandler)
-            .then((data: any) => {
-                horseman.close();
-                if (handlers.dataHandler) {
-                    data = handlers.dataHandler(data);
+        this
+            .compile(context.lambda)
+            .flatMap((script) => {
+                // tslint:disable-next-line:max-line-length
+                logger.debug(`compile script ${name} -- success`);
+                return this.exec(script, context.call);
+            })
+            .subscribe((result) => {
+                if (result.code === 'SUCCESS') {
+                    logger.debug(`execute script ${name} -- success`);
+                } else {
+                    logger.debug(`execute script ${name} -- failed`, result.errmsg);
                 }
 
-                if (data) {
-                    this.send({
-                        event: 'DATA', evtarg: {
-                            content: Buffer.from(JSON.stringify(data)).toString('base64'),
-                            job: job.oid,
-                        },
-                    });
-                }
-                job.result = { code: 'SUCCESS' };
-                this.send({ event: 'JOB_COMPLETED', evtarg: job });
-            }).then(() => {
-                log.debug('run spiderjs script -- success');
-            }, (err: Error) => {
-                log.error(`horseman error:\n ${err.stack}`);
-                horseman.close();
-                job.result = { code: 'FAILED', errmsg: err.message };
-                this.send({ event: 'JOB_COMPLETED', evtarg: job });
+                const event: IWorkerEvent = {
+                    arg: result,
+                    event: 'EXEC_COMPLETED',
+                };
+
+                this.send(event);
+            }, (error) => {
+                logger.debug(`compile script ${name} -- failed`, error);
+                const result: IResult = {
+                    code: `COMPILE_SPIDERJS_EXCEPTION`,
+                    errmsg: error.toString(),
+                    executor: context.call.executor,
+                    oid: context.call.oid,
+                    task: context.call.task,
+                    timestamp: new Date().toISOString(),
+                };
+                const event: IWorkerEvent = {
+                    arg: result,
+                    event: 'EXEC_COMPLETED',
+                };
+
+                this.send(event);
             });
     }
 
-    private createContext(job: agent.IJob): any {
-        let args: any;
+    private compile(lambda: ILambda): rx.Observable<vm.Script> {
 
-        if (job.args) {
-            args = JSON.parse(zlib.gunzipSync(Buffer.from(job.args, 'base64')).toString());
-        }
+        const script = zlib.gunzipSync(Buffer.from(lambda.script, 'base64')).toString();
+
+        // logger.trace(`run script:`, script);
+
+        return rx.Observable.create<vm.Script>((ob) => {
+            try {
+                ob.onNext(new vm.Script(script, { filename: lambda.name, displayErrors: true }));
+                ob.onCompleted();
+            } catch (error) {
+                ob.onError(error);
+            }
+        });
+    }
+
+    private exec(script: vm.Script, call: ICall): rx.Observable<IResult> {
+        const name = `${call.app}|${call.executor}|${call.lambda}`;
+
+        return rx.Observable.create<IResult>((ob) => {
+            try {
+                logger.debug(`create script context ${name} ...`);
+                const context = this.createContext(ob, script, call) as any;
+                logger.debug(`create script context ${name} -- success`);
+                if (context.main) {
+                    context.main();
+                }
+
+            } catch (error) {
+                const result: IResult = {
+                    code: `EXEC_SPIDERJS_EXCEPTION`,
+                    errmsg: error.stack,
+                    executor: call.executor,
+                    oid: call.oid,
+                    task: call.task,
+                    timestamp: new Date().toISOString(),
+                };
+
+                ob.onNext(result);
+                ob.onCompleted();
+            }
+        });
+    }
+
+    private createContext(ob: rx.Observer<IResult>, script: vm.Script, call: ICall): vm.Context {
+
+        const sj = {
+            call: (lambda: string, params: any) => {
+                const nextcall: ICall = {
+                    app: call.app,
+                    executor: call.executor,
+                    lambda,
+                    oid: call.oid,
+                    params: JSON.stringify(params),
+                    task: call.task,
+                    timestamp: new Date().toISOString(),
+                    trace: call.trace,
+                };
+
+                if (!nextcall.trace) {
+                    nextcall.trace = [];
+                }
+
+                nextcall.trace.push({
+                    endtime: new Date().toISOString(),
+                    executor: call.executor,
+                    oid: call.oid as string,
+                    starttime: call.timestamp as string,
+                });
+
+                if (nextcall.trace.length > 4) {
+                    nextcall.trace = nextcall.trace.splice(nextcall.trace.length - 4);
+                }
+
+                const event: IWorkerEvent = {
+                    arg: nextcall,
+                    event: 'EXEC',
+                };
+
+                return this.rxsend(ob, call, event);
+            },
+            data: (obj: any) => {
+
+                const data: IData = {
+                    app: call.app,
+                    call: call.oid,
+                    content: JSON.stringify(obj),
+                    executor: call.executor,
+                    task: call.task,
+                    timestamp: new Date().toISOString(),
+                };
+
+                const event: IWorkerEvent = {
+                    arg: data,
+                    event: 'DATA',
+                };
+
+                return this.rxsend(ob, call, event);
+            },
+            brower: (url: string, evaluate: any, waitfor?: string) => {
+                return this.runbrower(ob, call, url, evaluate, waitfor);
+            },
+            logger,
+            params: JSON.parse(call.params),
+            run: (observable: rx.Observable<{}>) => {
+                try {
+                    observable.subscribe(
+                        () => {
+
+                        },
+                        (error) => {
+                            const result: IResult = {
+                                code: `LAMBDA_EXCEPTION`,
+                                executor: call.executor,
+                                errmsg: error.toString(),
+                                oid: call.oid,
+                                task: call.task,
+                                timestamp: new Date().toISOString(),
+                            };
+
+                            ob.onNext(result);
+                            ob.onCompleted();
+                        },
+                        () => {
+                            const result: IResult = {
+                                code: `SUCCESS`,
+                                executor: call.executor,
+                                oid: call.oid,
+                                task: call.task,
+                                timestamp: new Date().toISOString(),
+                            };
+
+                            ob.onNext(result);
+                            ob.onCompleted();
+                        }
+                    );
+                } catch (error) {
+                    const result: IResult = {
+                        code: `LAMBDA_EXCEPTION`,
+                        executor: call.executor,
+                        errmsg: error.toString(),
+                        oid: call.oid,
+                        task: call.task,
+                        timestamp: new Date().toISOString(),
+                    };
+
+                    ob.onNext(result);
+                    ob.onCompleted();
+                }
+            },
+        };
 
         const context = vm.createContext({
-            args,
-            completed: () => {
-                job.result = { code: 'SUCCESS' };
-                this.send({ event: 'JOB_COMPLETED', evtarg: job });
-            },
-            log,
-            executor: config,
-            handleData: (d: any) => {
-                this.send({
-                    event: 'DATA', evtarg: {
-                        content: Buffer.from(JSON.stringify(d)).toString('base64'),
-                        job: job.oid,
-                    },
-                });
-            },
-            horseman: () => {
-                return this.createHorseMan(job);
-            },
-            process: (total: number, current: number) => {
-                if (!total) {
-                    total = 1;
-                    current = 1;
-                }
-                if (!current) {
-                    current = 0;
-                }
-                this.send({
-                    event: 'JOB_PROCESS', evtarg: { total, current },
-                });
-            },
-            runjob: (executor: string, ctx: any) => {
-
-                if (ctx) {
-                    ctx = zlib.gzipSync(Buffer.from(JSON.stringify(ctx))).toString('base64');
-                }
-
-                this.send({
-                    event: 'RUN_JOB', evtarg: {
-                        executor,
-                        args: ctx,
-                        parentjob: job.oid,
-                        rootjob: job.rootjob ? job.rootjob : job.oid,
-                    },
-                });
-            },
-            updateProxy: () => {
-                this.send({
-                    event: 'PROXY', evtarg: this.proxy,
-                });
-            },
+            logger,
             require,
-            setTimeout,
-            setInterval,
-            clearInterval,
+            sj,
         });
 
-        // load spider handlers
-        this.script.runInContext(context);
+        script.runInContext(context, { displayErrors: true, timeout: 60000 });
 
         return context;
     }
@@ -257,45 +298,70 @@ class Worker {
         return Math.floor(Math.random() * (max - min + 1) + min);
     }
 
-    private createHorseMan(job: agent.IJob): Horseman.Horseman {
-        let horseman: Horseman.Horseman;
-        if (this.proxy) {
-            horseman = new Horseman.Horseman({
-                ignoreSSLErrors: true,
-                proxy: `${this.proxy.ip}:${this.proxy.port}`,
-                proxyAuth: this.proxy.user ? `${this.proxy.user}:${this.proxy.passwd}` : undefined,
-                proxyType: this.proxy.type,
-                // timeout: config.get<number>('timeout'),
-            });
-        } else {
-            horseman = new Horseman.Horseman({
-                ignoreSSLErrors: true,
-                // timeout: config.get<number>('timeout'),
-            });
+    private runbrower(topob: rx.Observer<IResult>, call: ICall, url: string, evaluate: any, waitfor?: string): rx.Observable<any> {
+        let webbrower = this
+            .createHorseman()
+            .open(url);
+
+        if (waitfor) {
+            webbrower = webbrower.waitForSelector(waitfor);
         }
 
-        // horseman = horseman.viewport(this.getRandomInt(800, 1080), this.getRandomInt(900, 1920));
+        return rx.Observable.create((ob) => {
+            webbrower
+                .evaluate(evaluate)
+                .then((data: any) => {
+                    try {
+                        ob.onNext(data);
+                        ob.onCompleted();
+                    } catch (error) {
+                        logger.error(`catch unhandled error`, error.stack);
+                        const result: IResult = {
+                            code: `LAMBDA_EXCEPTION`,
+                            executor: call.executor,
+                            errmsg: error.toString(),
+                            oid: call.oid,
+                            task: call.task,
+                            timestamp: new Date().toISOString(),
+                        };
+
+                        topob.onNext(result);
+                        topob.onCompleted();
+                    }
+                }, (error: any) => {
+                    ob.onError(error);
+                })
+                .close();
+        });
+    }
+
+    private createHorseman(): horseman.Horseman {
+        let webbrower = new horseman.Horseman({
+            ignoreSSLErrors: true,
+            // timeout: config.get<number>('timeout'),
+        });
+
         const userAgent = this.userAgents[this.getRandomInt(0, this.userAgents.length)];
         // log.debug(`use userAgent:${userAgent}`);
         // tslint:disable-next-line:max-line-length
-        horseman = horseman.userAgent(userAgent);
+        webbrower = webbrower.userAgent(userAgent);
 
-        // horseman = horseman.cookies([]);
-
-        horseman.on('consoleMessage', (msg: any) => {
-            log.debug(msg);
+        webbrower.on('consoleMessage', (msg: any) => {
+            logger.debug(msg);
         });
 
-        horseman.on('urlChanged', (msg: any) => {
-            log.debug(`url changed: ${msg}`);
+        webbrower.on('urlChanged', (msg: any) => {
+            logger.debug(`url changed: ${msg}`);
         });
 
-        horseman.on('error ', (msg: any, trace: any) => {
-            log.debug(`error: ${msg}\n${trace}`);
+        webbrower.on('error ', (msg: any, trace: any) => {
+            logger.debug(`error: ${msg}\n${trace}`);
         });
 
-        return horseman;
+
+        return webbrower;
     }
-};
+}
 
-new Worker().run();
+// tslint:disable-next-line:no-unused-expression
+new Worker();

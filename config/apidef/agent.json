@@ -1,0 +1,31 @@
+{
+    "POST /executor": {
+        "method": "createExecutor",
+        "params": [
+            {
+                "name": "executor",
+                "json": "true",
+                "required": false
+            }
+        ]
+    },
+    "DELETE /executor": {
+        "method": "deleteExecutor",
+        "params": [
+            {
+                "name": "oid",
+                "required": false
+            }
+        ]
+    },
+    "POST /call": {
+        "method": "call",
+        "params": [
+            {
+                "name": "call",
+                "json": true,
+                "required": false
+            }
+        ]
+    }
+}
