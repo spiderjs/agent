@@ -9,4 +9,4 @@ RUN yarn && yarn run build && rm -rf node_modules
 
 VOLUME ["/agent/logs"]
 
-CMD ["node", "build/bin/app.js"]
+CMD ["node", "dist/src/app.js"]
