@@ -7,6 +7,6 @@ COPY ./ /agent
 WORKDIR /agent
 RUN yarn && yarn run build
 
-VOLUME ["/agent/logs"]
+VOLUME ["/agent/logs","/agent/fq"]
 
 CMD ["node", "dist/src/app.js"]
