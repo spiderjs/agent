@@ -5,7 +5,7 @@ MAINTAINER yayanyang@gmail.com
 COPY ./ /agent
 
 WORKDIR /agent
-RUN yarn && yarn run build && rm -rf node_modules
+RUN yarn && yarn run build
 
 VOLUME ["/agent/logs"]
 
