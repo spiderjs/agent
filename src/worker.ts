@@ -178,6 +178,9 @@ class Worker {
     private createContext(ob: rx.Observer<IResult>, script: vm.Script, call: ICall): vm.Context {
 
         const sj = {
+            brower: (url: string, evaluate: any, waitfor?: string) => {
+                return this.runbrower(ob, call, url, evaluate, waitfor);
+            },
             call: (lambda: string, params: any) => {
                 const nextcall: ICall = {
                     app: call.app,
@@ -230,22 +233,20 @@ class Worker {
 
                 return this.rxsend(ob, call, event);
             },
-            brower: (url: string, evaluate: any, waitfor?: string) => {
-                return this.runbrower(ob, call, url, evaluate, waitfor);
-            },
             logger,
             params: JSON.parse(call.params),
             run: (observable: rx.Observable<{}>) => {
                 try {
                     observable.subscribe(
+                        // tslint:disable-next-line:no-empty
                         () => {
 
                         },
                         (error) => {
                             const result: IResult = {
                                 code: `LAMBDA_EXCEPTION`,
-                                executor: call.executor,
                                 errmsg: error.toString(),
+                                executor: call.executor,
                                 oid: call.oid,
                                 task: call.task,
                                 timestamp: new Date().toISOString(),
@@ -265,7 +266,7 @@ class Worker {
 
                             ob.onNext(result);
                             ob.onCompleted();
-                        }
+                        },
                     );
                 } catch (error) {
                     const result: IResult = {
@@ -298,6 +299,7 @@ class Worker {
         return Math.floor(Math.random() * (max - min + 1) + min);
     }
 
+    // tslint:disable-next-line:max-line-length
     private runbrower(topob: rx.Observer<IResult>, call: ICall, url: string, evaluate: any, waitfor?: string): rx.Observable<any> {
         let webbrower = this
             .createHorseman()

@@ -4,8 +4,8 @@
         "oid": "AK572c00762ec20001",
         "key": "fe959e78fa62a07dfb6837ed63ec57bc"
     },
-    "workers": 1,
-    "keepalive": 5,
+    "workers": 10,
+    "keepalive": 10,
     "mqtt": {
         "accessKey": "LTAI5ljEkY4Uzbfh",
         "secretKey": "Zhit1SPQAI2z1d9WbWzkKJBYYMZ7cy",
