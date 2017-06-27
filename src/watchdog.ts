@@ -119,9 +119,11 @@ export default class WatchDogService implements IWatchDog {
                     return this.remoteCall(call)
                         .catch((error) => {
 
-                            if ((error as any).code === 'TASK_COMPLETED') {
+                            const code = (error as any).code;
+
+                            if (code === 'TASK_COMPLETED' || code === 'RESOURCE_NOT_FOUND') {
                                 logger.warn(`drop call[${call.oid}]`);
-                                return rx.Observable.empty();
+                                return rx.Observable.just({});
                             }
 
                             return this.callQ
