@@ -9,7 +9,7 @@
         },
         {
             "type": "logLevelFilter",
-            "level": "INFO",
+            "level": "DEBUG",
             "appender": {
                 "type": "dateFile",
                 "filename": "logs/agent.log",
