@@ -1837,15 +1837,17 @@ npmlog@^4.0.1, npmlog@^4.0.2:
     gauge "~2.7.3"
     set-blocking "~2.0.0"
 
-nrpc@^1.0.18:
-  version "1.0.18"
-  resolved "https://registry.yarnpkg.com/nrpc/-/nrpc-1.0.18.tgz#46f20938ff7d53501ab15f53009b8c6b3e3b4eda"
+nrpc@^1.0.21:
+  version "1.0.21"
+  resolved "http://registry.npm.taobao.org/nrpc/download/nrpc-1.0.21.tgz#f9d0e3675e2b312500c37e92390f113b07551d4f"
   dependencies:
+    "@types/config" "^0.0.32"
     "@types/log4js" "0.0.32"
     "@types/rx" "^4.1.1"
     "@types/rx-node" "0.0.5"
     "@types/stream-buffers" "^3.0.2"
     apihandler "^1.0.13"
+    config "^1.26.1"
     log4js "^1.1.1"
     rx "^4.1.0"
     rx-node "^1.0.2"
